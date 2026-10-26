@@ -57,6 +57,9 @@ select option{color:#111}
 .phan{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border-radius:16px;border:2px solid var(--vien);background:rgba(255,255,255,.06);color:inherit;font:inherit;cursor:pointer;text-align:center}
 .phan .bt{font-size:30px;line-height:1}.phan b{font-size:15px}.phan small{font-size:12px;color:var(--chu2)}
 .phan:hover,.phan.chon{border-color:#a5b4fc;background:rgba(99,102,241,.35)}
+.phan.bo-me{width:100%;margin-top:10px;border-color:rgba(250,204,21,.55);background:rgba(250,204,21,.12)}.phan.bo-me b{font-size:16px;color:#fde68a}
+.phan.bo-me{margin:4px 0 12px}
+@media (max-width:560px){.phan.bo-me{flex-direction:column;align-items:flex-start}.phan.bo-me small{display:block}.phan.bo-me .bt{display:none}.phan.bo-me b::before{content:"👪 "}}
 .ds-bai .muc{display:block;width:100%;text-align:left;margin:6px 0}
 .ds-bai .muc small{display:block;font-weight:400;color:var(--chu2);margin-top:2px}
 .ds-bai h4{margin:14px 0 4px;font-size:14px;color:var(--chu2)}
@@ -391,6 +394,7 @@ body.tg .tien{display:none}
       <div class="the">
         <h2>🔑 Vào học</h2>
         <p class="mo">Không cần Gmail hay số điện thoại — chỉ cần <b>mã học sinh</b> và <b>mã PIN</b> cô đã phát. Máy tự đưa em vào đúng khối lớp.</p>
+        <button class="phan bo-me" id="nutPH"><span class="bt">👪</span><b>Bố mẹ xem kết quả học của con</b><small>Phụ huynh bấm vào đây, chỉ cần mã PIN của con · học sinh nhập mã ở dưới</small></button>
         <label for="oMaHS">Mã học sinh</label>
         <input type="text" id="oMaHS" placeholder="VD: 7A1-HS05" autocomplete="off">
         <label for="oPIN">Mã PIN</label>
@@ -409,7 +413,6 @@ body.tg .tien{display:none}
         </details>
         <div class="huy">
           <button class="nut phu2" id="nutXemLai">📄 Xem lại kết quả</button>
-          <button class="nut phu2" id="nutPH">👪 Phụ huynh xem tiến độ</button>
         </div>
         <div class="huy">
           <span class="chip">⏱️ Hết giờ máy tự thu bài</span><span class="chip">🔀 Đề trộn riêng từng em</span><span class="chip">🛡️ Kiểm tra: rời màn hình 2 lần bị thu bài</span>
@@ -870,7 +873,7 @@ function TL_tomTatCon(bai) {
  *      linkPH, linkHS, ky} → [{lop, siSo, daLam, nhom, hs:[{ma, tt, tin}]}] */
 function TL_tinPhuHuynh(o) {
   var theoLop = {}, ky = o.ky ? ' — ' + o.ky : '';
-  var xemThem = o.linkPH ? ' Phụ huynh xem toàn bộ tiến độ học của con tại: ' + o.linkPH + ' (nhập mã của con và mã PIN trên phiếu cô phát).' :
+  var xemThem = o.linkPH ? ' Phụ huynh xem toàn bộ tiến độ học của con tại: ' + o.linkPH + ' (bấm nút «👪 Bố mẹ xem kết quả học của con», nhập mã PIN của con trên phiếu cô phát).' :
     ' Phụ huynh xem toàn bộ tiến độ học của con ở link phụ huynh cô gửi trong nhóm lớp (nhập mã của con và mã PIN).';
   o.hs.forEach(function (h) {
     var L = theoLop[h.lop] = theoLop[h.lop] || { lop: h.lop, siSo: 0, daLam: 0, loi: {}, hs: [] };
@@ -899,7 +902,7 @@ function TL_tinPhuHuynh(o) {
     var L = theoLop[k], hayNham = Object.keys(L.loi).sort(function (a, b) { return L.loi[b] - L.loi[a]; }).slice(0, 2);
     L.nhom = 'Bản Số Trung Sơn · Kính gửi phụ huynh lớp ' + L.lop + '. Bài «' + o.de.ten + '»: ' + L.daLam + '/' + L.siSo + ' em đã làm.' +
       (hayNham.length ? ' Cả lớp còn hay nhầm: ' + hayNham.map(TL_thuong).join('; ') + '. Cô sẽ chữa chung trên lớp.' : '') +
-      (o.linkPH ? ' Phụ huynh xem kết quả riêng của con tại: ' + o.linkPH + ' (nhập mã của con và mã PIN trên phiếu cô phát).' : ' Phụ huynh xem kết quả riêng của con bằng mã của con và mã PIN trên phiếu cô phát.') +
+      (o.linkPH ? ' Phụ huynh xem kết quả riêng của con tại: ' + o.linkPH + ' (bấm nút «👪 Bố mẹ xem kết quả học của con», nhập mã PIN của con trên phiếu cô phát).' : ' Phụ huynh xem kết quả riêng của con bằng mã của con và mã PIN trên phiếu cô phát.') +
       ' Cảm ơn phụ huynh đã đồng hành cùng con!' + ky;
     delete L.loi;
     return L;
@@ -2272,7 +2275,7 @@ function veHopPH(kq) {
     canhBao('🔔 Đã bật: lần sau mở Bản Số Trung Sơn trên máy này, bố mẹ thấy ngay kết quả của em.', 4);
   };
   $('nutChiaSePH').onclick = function () {
-    var tin = 'Bản Số Trung Sơn: con ' + ma + ' vừa làm bài «' + kq.de.ten + '»: ' + diemChuKQ(kq) + '. Bố mẹ xem chi tiết ở mục «👪 Phụ huynh xem tiến độ» trên Bản Số Trung Sơn (nhập mã và mã PIN của con).';
+    var tin = 'Bản Số Trung Sơn: con ' + ma + ' vừa làm bài «' + kq.de.ten + '»: ' + diemChuKQ(kq) + '. Bố mẹ xem chi tiết: mở Bản Số Trung Sơn (tinyurl.com/bansotrungson), bấm «👪 Bố mẹ xem kết quả học của con», nhập mã PIN của con.';
     if (navigator.share) navigator.share({ text: tin }).catch(function () { chep(tin); }); else chep(tin);
   };
   $('nutSoPH').onclick = function () { moPhuHuynh(ma, $('oPIN').value.trim()); };
