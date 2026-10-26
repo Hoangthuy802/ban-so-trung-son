@@ -690,7 +690,7 @@ function TL_deChoHS(nganHang, de, maHS) {
     if (de.tron && (c.dang === 'NLC' || c.dang === 'DS')) pa = TL_tron(pa, hat + '|' + c.id);
     return {
       so: i + 1, id: c.id, dang: c.dang, muc: c.muc, bai: c.bai, chuDe: c.chuDe, hoi: c.hoi, hinh: c.hinh || '',
-      pa: pa, diem: TL_diemToiDaCau(c, de), tieuChi: (c.dang === 'TL' || c.dang === 'TH') ? (c.tieuChi || []).map(function (t) { return t.y; }) : []
+      pa: pa, diem: TL_diemToiDaCau(c, de), tieuChi: []   // tự luận/thực hành: KHÔNG gửi thang chấm cho HS (chỉ cô xem khi chấm) — 26/10/2026
     };
   });
 }
@@ -1588,7 +1588,7 @@ function veCau() {
       });
     });
   } else {
-    var tc = c.tieuChi && c.tieuChi.length ? '<div class="tieu-chi"><b style="font-size:13px">Cô sẽ chấm theo:</b>' + c.tieuChi.map(function (x) { return '<div>✔️ ' + an(x) + '</div>'; }).join('') + '</div>' : '';
+    var tc = '';   // tự luận: không hiện gợi ý / thang chấm cho HS — em tự trả lời theo hiểu biết của mình
     if (c.dang === 'TH') {
       var tep = LB.tl['tep_' + c.id];
       v.innerHTML = tc + '<label class="vung-tep" for="oTep"><div style="font-size:40px">📤</div><b>Bấm để chọn tệp bài thực hành</b><div class="phu">.sb3 · .docx · .pptx · .xlsx · ảnh .png/.jpg — tối đa 8 MB</div>' +
