@@ -415,7 +415,7 @@ body.tg .tien{display:none}
           <button class="nut phu2" id="nutXemLai">📄 Xem lại kết quả</button>
         </div>
         <div class="huy">
-          <span class="chip">⏱️ Hết giờ máy tự thu bài</span><span class="chip">🔀 Đề trộn riêng từng em</span><span class="chip">🛡️ Kiểm tra: rời màn hình 2 lần bị thu bài</span>
+          <span class="chip">⏱️ Hết giờ máy tự thu bài</span><span class="chip">🔀 Đề trộn riêng từng em</span><span class="chip">🛡️ Kiểm tra: mở tab khác 2 lần bị thu bài</span>
         </div>
       </div>
       <div class="the canh">
@@ -1368,7 +1368,7 @@ var MAY_THU = (function () {
         diem10: kq.toiDaGV ? null : TL_diemThang10(kq.diemTN, kq.toiDaTN, x.de.lop), roiTab: x.roi, lyDo: lyDo || 'HS bấm nộp', trangThai: kq.toiDaGV ? 'Chờ cô chấm' : 'Xong', nx: TL_nhanXetHS(kq, x.de.lop), tep: {} };
       bai.push(b); ghi(x.de.ma, x.maHS, 'Nộp bài', b.lyDo); x.xong = true; x.kq = kqHS(b, x.de); return x.kq;
     },
-    btlDanhSach: function (maHS) { var l = hs[String(maHS).trim().toUpperCase()]; if (!l) throw new Error('Mã học sinh «' + maHS + '» chưa có. Thử 7A-HS01.'); var k = parseInt(l, 10); return { khoi: k, bai: k === 7 ? [{ ma: 'TIN7-B5', ten: 'Bài 5. Ứng xử trên mạng' }, { ma: 'TIN7-B6', ten: 'Bài 6. Làm quen với phần mềm bảng tính' }] : [] }; },   // bản xem thử: bài mẫu
+    btlDanhSach: function (maHS) { var l = hs[String(maHS).trim().toUpperCase()]; if (!l) throw new Error('Mã học sinh «' + maHS + '» chưa có. Thử 7A-HS01.'); var k = parseInt(l, 10); return { khoi: k, bai: k === 7 ? [{ ma: 'TIN7-B4', ten: 'Bài 4. Mạng xã hội', pt: 100, xong: true }, { ma: 'TIN7-B5', ten: 'Bài 5. Ứng xử trên mạng', pt: 40 }, { ma: 'TIN7-B6', ten: 'Bài 6. Làm quen với phần mềm bảng tính', khoa: true, can: 'Bài 5. Ứng xử trên mạng' }] : [] }; },   // bản xem thử: bài mẫu (học lần lượt)
     hsDanhSachDe: function (maHS) {
       var m = String(maHS).trim().toUpperCase(), l = hs[m]; if (!l) throw new Error('Mã học sinh «' + maHS + '» chưa có trong danh sách của cô. Thử 7A-HS01.');
       var k = parseInt(l, 10), r = { khoi: k, onTap: [], kiemTra: [] };
@@ -1678,10 +1678,27 @@ function chanPhim(e) {
 function chanChuot(e) { e.preventDefault(); }
 function chanSaoChep(e) { e.preventDefault(); }
 var lanRoiCuoi = 0;
-/* Rời màn hình = gian lận: lần 1 cảnh báo · lần 2 máy chủ THU BÀI NGAY, chấm phần em đã làm */
+/* 🔔 Còi báo động (WebAudio, không cần tệp): còi hai âm cao – thấp 2,4 giây + rung điện thoại */
+function coiBaoDong() {
+  try {
+    amThanh = amThanh || new (window.AudioContext || window.webkitAudioContext)();
+    if (amThanh.state === 'suspended') amThanh.resume();
+    var o = amThanh.createOscillator(), g = amThanh.createGain(), t = amThanh.currentTime;
+    o.type = 'sawtooth'; o.connect(g); g.connect(amThanh.destination);
+    for (var i = 0; i < 8; i++) o.frequency.setValueAtTime(i % 2 ? 620 : 980, t + i * .3);
+    g.gain.setValueAtTime(.001, t); g.gain.exponentialRampToValueAtTime(.3, t + .06); g.gain.setValueAtTime(.3, t + 2.2); g.gain.exponentialRampToValueAtTime(.001, t + 2.4);
+    o.start(t); o.stop(t + 2.4);
+  } catch (e) { /* máy không có âm thanh */ }
+  try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e2) { }
+}
+/* Rời màn hình = gian lận: lần 1 cảnh báo + còi · lần 2 máy chủ THU BÀI NGAY, chấm phần em đã làm.
+   CHỈ tính khi em rời trang làm bài để mở TAB, CỬA SỔ hay ỨNG DỤNG khác. Em vẫn ở trong trang làm bài thì KHÔNG tính:
+   di chuột xuống thanh tác vụ / ra mép màn hình, kéo thanh cuộn, xem lại câu trước, bấm nhầm ra ngoài rồi quay lại ngay (dưới 3 giây). */
+var GIAY_ROI_CUA_SO = 3, henRoi = null;
 function roiManHinh(loai) {
   if (LB.dangNop || LB.hen || Date.now() - lanRoiCuoi < 1500) return;
   lanRoiCuoi = Date.now();
+  coiBaoDong();
   goi('hsBaoRoiTab', LB.phien, loai, traLoiGon()).then(function (r) {
     keu('sai');
     if (r.daThu) {
@@ -1691,22 +1708,30 @@ function roiManHinh(loai) {
       return;
     }
     if (r.toiDa) moHop('canh-bao-1', '🛡️', 'Cảnh báo lần ' + r.soLan + '/' + r.toiDa,
-      '<p>Em vừa <b>rời màn hình làm bài</b> (' + an(loai) + ').<br>' + (r.toiDa - r.soLan === 1 ? 'Nếu rời thêm <b>1 lần nữa</b>, máy sẽ <b>thu bài ngay</b>.' : 'Còn ' + (r.toiDa - r.soLan) + ' lần trước khi máy thu bài.') + '</p>', '✋ Em hiểu, làm tiếp');
+      '<p>Em vừa <b>rời trang làm bài để mở nơi khác</b> (' + an(loai) + ').<br>' + (r.toiDa - r.soLan === 1 ? 'Nếu rời thêm <b>1 lần nữa</b>, máy sẽ <b>thu bài ngay</b>.' : 'Còn ' + (r.toiDa - r.soLan) + ' lần trước khi máy thu bài.') + '</p>', '✋ Em hiểu, làm tiếp');
     else canhBao('⚠️ Em vừa rời màn hình làm bài (lần ' + r.soLan + '). Cô sẽ thấy trong nhật ký.', 5);
   }).catch(function () { });
 }
-function khiAn() { if (document.hidden) roiManHinh('chuyển tab / thu nhỏ'); }
-function khiMatTieuDiem() { roiManHinh('bấm ra ngoài cửa sổ'); }
+function huyHenRoi() { if (henRoi) { clearTimeout(henRoi); henRoi = null; } }
+/* Chuyển tab, thu nhỏ trình duyệt, chuyển ứng dụng (điện thoại) → tính ngay */
+function khiAn() { if (document.hidden) { huyHenRoi(); roiManHinh('chuyển tab / thu nhỏ / mở ứng dụng khác'); } }
+/* Cửa sổ mất tiêu điểm (mở cửa sổ, thư mục, tệp khác) mà trang vẫn hiện: chỉ tính nếu em ở ngoài từ 3 giây trở lên */
+function khiMatTieuDiem() {
+  if (document.hidden) return;
+  huyHenRoi();
+  henRoi = setTimeout(function () { henRoi = null; if (!document.hidden && !document.hasFocus()) roiManHinh('mở cửa sổ / tệp / ứng dụng khác'); }, GIAY_ROI_CUA_SO * 1000);
+}
+function khiCoTieuDiem() { huyHenRoi(); }
 function batChongGianLan() {
   document.addEventListener('keydown', chanPhim); document.addEventListener('contextmenu', chanChuot);
   document.addEventListener('copy', chanSaoChep); document.addEventListener('cut', chanSaoChep);
-  document.addEventListener('visibilitychange', khiAn); window.addEventListener('blur', khiMatTieuDiem);
+  document.addEventListener('visibilitychange', khiAn); window.addEventListener('blur', khiMatTieuDiem); window.addEventListener('focus', khiCoTieuDiem);
   window.onbeforeunload = function () { return 'Em đang làm bài — rời trang bây giờ?'; };
 }
 function tatChongGianLan() {
   document.removeEventListener('keydown', chanPhim); document.removeEventListener('contextmenu', chanChuot);
   document.removeEventListener('copy', chanSaoChep); document.removeEventListener('cut', chanSaoChep);
-  document.removeEventListener('visibilitychange', khiAn); window.removeEventListener('blur', khiMatTieuDiem);
+  document.removeEventListener('visibilitychange', khiAn); window.removeEventListener('blur', khiMatTieuDiem); window.removeEventListener('focus', khiCoTieuDiem); huyHenRoi();
   window.onbeforeunload = null; $('dauChim').style.display = 'none';
 }
 
@@ -2002,7 +2027,7 @@ function hopLuat(de) {
   var gl = de.roiTabToiDa;
   moHop('luat', '📜', 'Luật làm bài',
     '<div class="luat"><div>⏱️ <span>Thời gian: <b>' + de.phut + ' phút</b>. Hết giờ, máy <b>tự thu bài</b> — em không cần bấm nộp.</span></div>' +
-    (gl ? '<div>🛡️ <span>Không rời màn hình làm bài (chuyển tab, thu nhỏ, bấm ra ngoài). Lần 1: <b>cảnh báo</b>. Lần ' + gl + ': máy <b>thu bài ngay</b>, chấm phần em đã làm.</span></div>' : '') +
+    (gl ? '<div>🛡️ <span>Không rời trang làm bài để mở tab, cửa sổ hay ứng dụng khác. Em ở trong trang làm bài, kể cả di chuột xuống thanh tác vụ, thì không sao. Lần 1: <b>còi báo động + cảnh báo</b>. Lần ' + gl + ': máy <b>thu bài ngay</b>, chấm phần em đã làm.</span></div>' : '') +
     '<div>💾 <span>Bài tự lưu liên tục. Lỡ mất mạng, em vào lại bằng mã cũ để làm tiếp.</span></div></div>', '🚀 Em hiểu, bắt đầu!');
 }
 /* thanh tiến độ + lời linh vật */
@@ -2370,8 +2395,11 @@ function hienPhan(phan) {
     goi('btlDanhSach', ma, pin).then(function (k) {
       o.innerHTML = '<h3 style="margin:14px 0 6px">🧭 Khám phá bài mới — khối ' + k.khoi + '</h3>';
       if (!k.bai.length) { o.insertAdjacentHTML('beforeend', '<p class="mo">Khối ' + k.khoi + ' hiện chưa có bài nào cô mở để tìm hiểu trước. Em quay lại sau nhé.</p>'); return; }
+      o.insertAdjacentHTML('beforeend', '<p class="mo">Em học lần lượt: học xong bài trên (xem hết các phần, làm câu hỏi) thì bài dưới mới mở.</p>');
       k.bai.forEach(function (b) {
-        nutMuc(o, '📘 ' + b.ten, '', false, function () {
+        if (b.khoa) { nutMuc(o, '🔒 ' + b.ten, 'Học xong «' + b.can + '» để mở bài này', true); return; }
+        var ghi = b.xong ? '✅ Đã học xong · mở lại để ôn' : b.pt ? 'Đã học ' + b.pt + '% · bấm để học tiếp' : 'Bài mới · bấm để bắt đầu';
+        nutMuc(o, (b.xong ? '✅ ' : '📘 ') + b.ten, ghi, false, function () {
           o.insertAdjacentHTML('beforeend', '<p class="mo">⏳ Đang mở bài…</p>');
           goi('btlMoBai', ma, pin, b.ma).then(moTrangBai)
             .catch(function (e) { baoLoi('loiVao', chuLoi(e)); });
@@ -2401,7 +2429,7 @@ function hienPhan(phan) {
       ds.forEach(function (d) {
         if (d.tt === 'da-nop') nutMuc(o, '✅ ' + d.ten, 'Em đã nộp bài · bấm để xem lại kết quả', false, function () { xem(d.ma); });
         else if (d.tt === 'chua-toi') nutMuc(o, '🔒 ' + d.ten, 'Mở lúc ' + d.gioMo, true);
-        else nutMuc(o, '📝 ' + d.ten, d.phut + ' phút · làm 1 lần · rời màn hình 2 lần bị thu bài', false, function () { vao(d.ma); });
+        else nutMuc(o, '📝 ' + d.ten, d.phut + ' phút · làm 1 lần · mở tab khác 2 lần bị thu bài', false, function () { vao(d.ma); });
       });
     });
   }).catch(function (e) { o.innerHTML = ''; baoLoi('loiVao', chuLoi(e)); });
@@ -2734,7 +2762,7 @@ function tgAlbum(ma) {
   if (layThamSo('chon')) { var c0 = LB.cau[LB.so]; if (c0.dang === 'NLC') LB.tl[c0.id] = c0.pa[Number(layThamSo('chon'))].k; if (c0.dang === 'DS') { var o2 = {}; c0.pa.forEach(function (p, k) { o2[p.k] = ['Đ', 'S', 'S', 'S'][k]; }); LB.tl[c0.id] = o2; } }
   veCau();
   if (layThamSo('hop') === 'luat') hopLuat(LB.de);                 // ảnh chụp cho hồ sơ
-  if (layThamSo('hop') === 'canh-bao') moHop('canh-bao-1', '🛡️', 'Cảnh báo lần 1/2', '<p>Em vừa <b>rời màn hình làm bài</b> (chuyển tab / thu nhỏ).<br>Nếu rời thêm <b>1 lần nữa</b>, máy sẽ <b>thu bài ngay</b>.</p>', '✋ Em hiểu, làm tiếp');
+  if (layThamSo('hop') === 'canh-bao') moHop('canh-bao-1', '🛡️', 'Cảnh báo lần 1/2', '<p>Em vừa <b>rời trang làm bài để mở nơi khác</b> (chuyển tab / thu nhỏ).<br>Nếu rời thêm <b>1 lần nữa</b>, máy sẽ <b>thu bài ngay</b>.</p>', '✋ Em hiểu, làm tiếp');
   if (man === 'on-tap' && layThamSo('kiem')) setTimeout(kiemCau, 50);
   if (man === 'on-tap' && layThamSo('goi-y')) setTimeout(function () { xinGoiY(LB.cau[LB.so]); }, 50);
   if (man === 'ket-qua') { var tl = {}; Object.keys(LB.tl).forEach(function (k) { tl[k] = LB.tl[k]; }); hienKetQua(MAY_THU.hsNop(LB.phien, tl, 'HS bấm nộp')); }
