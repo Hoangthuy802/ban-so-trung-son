@@ -2378,10 +2378,32 @@ document.addEventListener('click', function (e) {
   goi('hsCamXuc', LB.phien, b.dataset.cx).then(function () { $('camXucTB').textContent = '💙 Cảm ơn em! Cô đã nhận được.'; })
     .catch(function (er) { $('camXucTB').textContent = '⚠️ ' + chuLoi(er); });
 });
+/* 30/10/2026 — Giơ tay trên điện thoại. Bài Khám phá do máy chủ gửi về có thể là bản cũ: cứ nằm trong khung là mở cửa sổ mới
+   (điện thoại chặn) → vá ngay tại đây: khung này đã có quyền camera nên bật camera trong khung; gắn khung hình vào trang
+   (iPhone mới có hình); điện thoại dùng bộ nhận diện CPU (đỡ treo); lời nhắc khi mở bằng Zalo / máy quét QR.
+   Chỗ nào không khớp (máy chủ đã là bản mới) thì bỏ qua. */
+function trongUngDung() {
+  var ua = navigator.userAgent || '';
+  return /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|Line\/|MicroMessenger|KAKAOTALK|TikTok|musical_ly|Snapchat|; wv\)|GSA\//i.test(ua) ||
+    (/iPhone|iPad|iPod/i.test(ua) && !/Safari\//i.test(ua));
+}
+function vaCameraDienThoai(h) {
+  var NHAC = 'Nếu em mở bằng Zalo hoặc ứng dụng quét QR, hãy mở lại bằng <b>Chrome</b> (iPhone: <b>Safari</b>). ';
+  [['if(window.self!==window.top){moCuaSoGT();return}',
+    'if(window.self!==window.top&&(function(){try{var pp=document.permissionsPolicy||document.featurePolicy;return !!(pp&&pp.allowsFeature&&!pp.allowsFeature("camera"))}catch(e){return false}})()){moCuaSoGT();return}'],
+   ['GT.vid=document.createElement("video");GT.vid.muted=true;GT.vid.playsInline=true;',
+    'GT.vid=document.createElement("video");GT.vid.muted=true;GT.vid.playsInline=true;GT.vid.setAttribute("playsinline","");GT.vid.setAttribute("muted","");GT.vid.setAttribute("autoplay","");GT.vid.style.cssText="position:fixed;left:0;bottom:0;width:4px;height:3px;opacity:.01;pointer-events:none;z-index:-1";document.body.appendChild(GT.vid);'],
+   ['try{GT.mp=await mk("GPU")}catch(e){GT.mp=await mk("CPU")}',
+    'if(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)){GT.mp=await mk("CPU")}else{try{GT.mp=await mk("GPU")}catch(e){GT.mp=await mk("CPU")}}'],
+   ['baoGT("Máy này không mở được camera. ', 'baoGT("Máy này chưa mở được camera. ' + NHAC],
+   ['Em kiểm tra quyền camera, hoặc dùng phím', NHAC + 'Hoặc em kiểm tra quyền camera, dùng phím']
+  ].forEach(function (t) { if (h.indexOf(t[0]) >= 0) h = h.split(t[0]).join(t[1]); });
+  return h;
+}
 function moTrangBai(h) {
   var f = document.createElement('iframe');
   f.title = 'Bài Khám phá'; f.allow = 'camera; microphone; autoplay; fullscreen'; f.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;border:0;background:#fff;z-index:99999';
-  f.srcdoc = h;
+  f.srcdoc = vaCameraDienThoai(h);
   document.body.innerHTML = ''; document.body.style.overflow = 'hidden'; document.body.appendChild(f);
 }
 function hienPhan(phan) {
@@ -2766,6 +2788,27 @@ function tgAlbum(ma) {
   if (man === 'on-tap' && layThamSo('kiem')) setTimeout(kiemCau, 50);
   if (man === 'on-tap' && layThamSo('goi-y')) setTimeout(function () { xinGoiY(LB.cau[LB.so]); }, 50);
   if (man === 'ket-qua') { var tl = {}; Object.keys(LB.tl).forEach(function (k) { tl[k] = LB.tl[k]; }); hienKetQua(MAY_THU.hsNop(LB.phien, tl, 'HS bấm nộp')); }
+})();
+/* Mở bằng Zalo / Facebook / máy quét QR (trình duyệt trong ứng dụng) thường bị chặn camera → nhắc mở bằng Chrome / Safari.
+   Chỉ hiện ở lối vào ngoài Google (GitHub Pages). */
+(function () {
+  if (!trongUngDung() || /google/i.test(location.host) || location.protocol !== 'https:') return;
+  var ios = /iPhone|iPad|iPod/i.test(navigator.userAgent || ''), link = location.href, d = document.createElement('div');
+  d.id = 'nhacTrinhDuyet';
+  d.style.cssText = 'margin:10px auto;max-width:720px;padding:12px 14px;border-radius:12px;background:#fff7e0;border:2px solid #f0b429;color:#5a3b00;font-size:15px;line-height:1.45;position:relative;z-index:5';
+  d.innerHTML = '📷 <b>Em đang mở trang trong ứng dụng</b> (Zalo, Facebook hoặc máy quét QR) nên <b>camera giơ tay có thể không chạy</b>. ' +
+    (ios ? 'Em bấm nút <b>⋯</b> (hoặc biểu tượng la bàn) → <b>Mở bằng Safari</b>.' : 'Em bấm nút dưới đây, hoặc bấm <b>⋮</b> → <b>Mở bằng trình duyệt</b>.') +
+    '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' +
+    (ios ? '' : '<a style="padding:8px 12px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none;font-weight:700" href="intent://' +
+      location.host + location.pathname + location.search + '#Intent;scheme=https;package=com.android.chrome;end">Mở bằng Chrome</a>') +
+    '<button id="chepLink" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #c9a227;background:#fff;font-weight:700">Chép link</button></div>';
+  document.body.insertBefore(d, document.body.firstChild);
+  var b = document.getElementById('chepLink');
+  b.onclick = function () {
+    var xong = function () { b.textContent = '✓ Đã chép — dán vào Chrome / Safari'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(xong, function () { prompt('Chép link này:', link); });
+    else prompt('Chép link này:', link);
+  };
 })();
 </script>
 </body>
