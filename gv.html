@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giáo viên bộ môn · Bản Số Trung Sơn</title>
+<style>
+:root { --nen:#f4f6fb; --the:#fff; --chu:#1b2733; --mo:#5b6776; --vien:#d9dfeb; --chinh:#1a56b0; --xanh:#1f8a4c; --vang:#b7791f; --do:#c0392b; --nhat:#eef3fc; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--nen); color:var(--chu); font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif; }
+header { background:var(--chinh); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+header h1 { font-size:17px; margin:0; flex:1; min-width:220px; }
+header button { background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.5); }
+main { max-width:1100px; margin:0 auto; padding:14px 16px 40px; }
+button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--vien); background:#fff; padding:7px 12px; color:var(--chu); }
+button.chinh { background:var(--chinh); color:#fff; border-color:var(--chinh); }
+button:disabled { opacity:.5; cursor:default; }
+input, textarea { font:inherit; width:100%; padding:8px 10px; border:1px solid var(--vien); border-radius:8px; background:#fff; color:var(--chu); }
+.the { background:var(--the); border:1px solid var(--vien); border-radius:12px; padding:14px 16px; margin:12px 0; }
+.dn { max-width:380px; margin:48px auto; }
+.dn label { display:block; margin:10px 0 4px; font-weight:600; }
+.loi { color:var(--do); margin-top:10px; min-height:1.3em; }
+.tab { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 4px; }
+.tab button.bat { background:var(--chinh); color:#fff; border-color:var(--chinh); }
+.khoi { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; align-items:center; }
+.khoi button.bat { background:var(--nhat); border-color:var(--chinh); color:var(--chinh); font-weight:600; }
+.luoi { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.o { background:var(--nhat); border-radius:10px; padding:10px 12px; }
+.o b { display:block; font-size:22px; color:var(--chinh); }
+.o span { color:var(--mo); font-size:13px; }
+table { border-collapse:collapse; width:100%; font-size:14px; }
+th, td { border-bottom:1px solid var(--vien); padding:6px 8px; text-align:left; vertical-align:top; }
+th { background:var(--nhat); position:sticky; top:0; }
+.cuon { overflow-x:auto; max-height:460px; overflow-y:auto; border:1px solid var(--vien); border-radius:10px; }
+.chip { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; border:1px solid var(--vien); }
+.xanh { color:var(--xanh); border-color:var(--xanh); } .vang { color:var(--vang); border-color:var(--vang); } .do { color:var(--do); border-color:var(--do); } .mo { color:var(--mo); }
+.thanh { height:8px; background:#e4e9f3; border-radius:4px; min-width:60px; } .thanh i { display:block; height:100%; border-radius:4px; background:var(--xanh); }
+details { border:1px solid var(--vien); border-radius:10px; margin:8px 0; background:#fff; }
+summary { padding:9px 12px; cursor:pointer; font-weight:600; }
+.nd { padding:2px 14px 12px; }
+.pa { padding:3px 8px; border-radius:6px; margin:3px 0; }
+.pa.dung { background:#e3f5ea; border:1px solid var(--xanh); }
+.giai { background:#fff8e6; border-left:3px solid var(--vang); padding:6px 10px; margin:6px 0; }
+.gy { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+.gy input { flex:1; min-width:200px; }
+.tb { background:var(--nhat); padding:8px 12px; border-radius:8px; margin:8px 0; }
+.nho { font-size:13px; color:var(--mo); }
+@media (max-width:600px){ header h1{font-size:15px} main{padding:10px} }
+</style>
+</head>
+<body>
+<header id="dau" style="display:none">
+  <h1 id="tieuDe"></h1>
+  <span class="nho" style="color:#fff" id="luc"></span>
+  <button onclick="lamMoi()">🔄 Làm mới</button>
+  <button onclick="thoat()">Đăng xuất</button>
+</header>
+
+<main id="dangNhap">
+  <div class="the dn">
+    <h2 style="margin-top:0">👩‍🏫 Giáo viên bộ môn</h2>
+    <div class="nho">Bản Số Trung Sơn · xem tiến độ học tập và duyệt kiến thức của môn mình dạy.</div>
+    <label for="tk">Tài khoản</label><input id="tk" autocomplete="username" autocapitalize="off" placeholder="gv-…">
+    <label for="mk">Mật khẩu</label><input id="mk" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')vao()">
+    <div style="margin-top:14px"><button class="chinh" id="nutVao" onclick="vao()">Đăng nhập</button></div>
+    <div class="loi" id="loiDN"></div>
+    <div class="nho" style="margin-top:10px">Tài khoản do cô chủ bảng tính cấp. Chỉ thấy MÃ học sinh, không có tên.</div>
+  </div>
+</main>
+
+<main id="chinh" style="display:none">
+  <div class="tab" id="cacTab"></div>
+  <div class="khoi" id="chonKhoi"></div>
+  <div id="vung"></div>
+</main>
+
+<script>
+/* Lối vào nhẹ: trang đặt ngoài Google (GitHub Pages) gọi máy chủ bằng fetch → không bị lỗi «không thể mở tệp» khi máy đăng nhập nhiều tài khoản Google */
+(function () {
+  var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
+  if (!/^https:/.test(API) || (window.google && google.script)) return;
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV'];
+  function tao(ok, hong) {
+    var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
+    DS.forEach(function (ten) {
+      r[ten] = function () {
+        var a = Array.prototype.slice.call(arguments);
+        fetch(API, { method: 'POST', body: JSON.stringify({ f: ten, a: a }) })
+          .then(function (x) { return x.json(); })
+          .then(function (k) { if (k.ok) { if (ok) ok(k.v); } else if (hong) hong(new Error(k.loi)); })
+          .catch(function () { if (hong) hong(new Error('Mạng đang chập chờn, máy chưa nối được tới máy chủ.')); });
+      };
+    });
+    return r;
+  }
+  window.google = { script: { run: tao(null, null) } };
+})();
+var G = (window.google && google.script && google.script.run) || null;
+var VE = '', MON = '', TENMON = '', TAB = 'td', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null;
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function goi(ten, args, ok, loi) {
+  if (!G) { (loi || alert)('Trang này phải mở bằng link ?vai=gvmon của máy chủ TinLab.'); return; }
+  G.withSuccessHandler(ok).withFailureHandler(function (e) {
+    var m = String(e && e.message || e).replace(/^Error:\s*/, '');
+    if (/hết hạn/.test(m)) { thoat(m); return; }
+    (loi || function (t) { alert(t); })(m);
+  })[ten].apply(G, args);
+}
+
+function vao() {
+  $('loiDN').textContent = ''; $('nutVao').disabled = true;
+  goi('gvMonDangNhap', [$('tk').value, $('mk').value], function (r) {
+    $('nutVao').disabled = false; $('mk').value = '';
+    VE = r.ve; MON = r.mon; TENMON = r.tenMon; TAB = 'td'; TD = null; ND = {}; DG = null;
+    $('dangNhap').style.display = 'none'; $('chinh').style.display = ''; $('dau').style.display = '';
+    $('tieuDe').textContent = '👩‍🏫 Giáo viên ' + TENMON + ' · ' + r.tk;
+    ve();
+  }, function (m) { $('nutVao').disabled = false; $('loiDN').textContent = m; });
+}
+function thoat(thongBao) {
+  if (VE) { try { G.gvMonThoat(VE); } catch (e) { /* bỏ qua */ } }
+  VE = ''; TD = null; ND = {}; DG = null;
+  $('chinh').style.display = 'none'; $('dau').style.display = 'none'; $('dangNhap').style.display = '';
+  $('loiDN').textContent = typeof thongBao === 'string' ? thongBao : '';
+}
+function lamMoi() { TD = null; ND = {}; DG = null; NV = null; LOP = null; ve(); }
+
+function ve() {
+  var t = [['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
+  $('cacTab').innerHTML = t.map(function (x) { return '<button class="' + (TAB === x[0] ? 'bat' : '') + '" onclick="doiTab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('');
+  $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' ? 'none' : '';
+  $('chonKhoi').innerHTML = '<span class="nho">Khối:</span>' + [6, 7, 8, 9].map(function (k) { return '<button class="' + (KHOI === k ? 'bat' : '') + '" onclick="doiKhoi(' + k + ')">Khối ' + k + '</button>'; }).join('');
+  if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else veGopY();
+}
+function doiTab(t) { TAB = t; ve(); }
+function doiKhoi(k) { KHOI = k; ve(); }
+function cho(t) { $('vung').innerHTML = '<div class="the nho">' + (t || 'Đang tải…') + '</div>'; }
+function loiVung(m) { $('vung').innerHTML = '<div class="the loi">' + esc(m) + '</div>'; }
+
+/* ---------- Tiến độ ---------- */
+function veTienDo() {
+  if (!TD) { cho(); goi('gvMonTienDo', [VE], function (r) { TD = r; $('luc').textContent = 'Cập nhật ' + r.luc; veTienDo(); }, loiVung); return; }
+  var k = TD.khoi.filter(function (x) { return x.khoi === KHOI; })[0];
+  if (!k) { cho('Chưa có dữ liệu khối này.'); return; }
+  var nong = k.hs.filter(function (h) { return h.kp.some(function (p) { return p >= 0; }) || h.onN || h.kt !== null; }).length;
+  var onTong = k.hs.reduce(function (s, h) { return s + h.onN; }, 0);
+  var ktN = k.hs.filter(function (h) { return h.kt !== null; }).length;
+  var h = '<div class="the"><div class="luoi">' +
+    o(k.siSo, 'học sinh trong khối') + o(nong + '/' + k.siSo, 'đã vào học môn này') + o(onTong, 'lượt Ôn luyện đã nộp') + o(ktN + '/' + k.siSo, 'đã làm bài Kiểm tra') + '</div></div>';
+  h += '<div class="the"><b>Bài Khám phá</b> <span class="nho">(học lần lượt; «xong» khi học ≥ ' + TD.nguong + '%)</span>';
+  h += k.kp.length ? '<div class="cuon"><table><tr><th>Bài</th><th>Trạng thái</th><th>Đã mở</th><th>Đã xong</th><th>% học TB</th></tr>' +
+    k.kp.map(function (b) { return '<tr><td>' + esc(b.ma) + ' · ' + esc(b.ten) + '</td><td>' + tt(b.tt) + '</td><td>' + b.daMo + '/' + k.siSo + '</td><td>' + b.xong + '</td><td>' + bar(b.tb) + '</td></tr>'; }).join('') + '</table></div>'
+    : '<div class="nho">Khối này chưa có bài Khám phá.</div>';
+  h += '</div><div class="the"><b>Đề Ôn luyện, Kiểm tra</b>';
+  h += k.de.length ? '<div class="cuon"><table><tr><th>Đề</th><th>Chế độ</th><th>Mở cho HS</th><th>Bài đã nộp</th><th>Điểm TB</th><th>Từ 5 điểm</th></tr>' +
+    k.de.map(function (d) { return '<tr><td>' + esc(d.ma) + '<div class="nho">' + esc(d.ten) + '</div></td><td>' + esc(d.cheDo) + '</td><td>' + (d.dangMo ? '<span class="chip xanh">đang mở</span>' : '<span class="chip mo">chưa mở</span>') + '</td><td>' + d.nop + '</td><td>' + (d.tb === null ? '–' : d.tb) + '</td><td>' + (d.nop ? d.dat + '/' + d.nop : '–') + '</td></tr>'; }).join('') + '</table></div>'
+    : '<div class="nho">Chưa có đề.</div>';
+  h += '</div><div class="the"><b>Từng học sinh</b> <span class="nho">(mã HS; dùng để nhắc em chưa vào học)</span>';
+  h += k.hs.length ? '<div class="cuon"><table><tr><th>Mã HS</th><th>Lớp</th>' + k.kp.map(function (b) { return '<th title="' + esc(b.ten) + '">' + esc(b.ma.replace(/^[A-Z]+\d-/, '')) + '</th>'; }).join('') + '<th>Ôn luyện</th><th>Kiểm tra</th></tr>' +
+    k.hs.map(function (s) {
+      return '<tr><td>' + esc(s.ma) + '</td><td>' + esc(s.lop) + '</td>' + s.kp.map(function (p) { return '<td>' + (p < 0 ? '<span class="mo">–</span>' : p + '%') + '</td>'; }).join('') +
+        '<td>' + (s.onN ? s.onN + ' lượt · TB ' + s.onTB : '<span class="mo">chưa</span>') + '</td><td>' + (s.kt === null ? '<span class="mo">chưa</span>' : s.kt) + '</td></tr>';
+    }).join('') + '</table></div>' : '<div class="nho">Chưa có học sinh khối này trong trang «Học sinh».</div>';
+  $('vung').innerHTML = h + '</div>';
+}
+function o(a, b) { return '<div class="o"><b>' + esc(a) + '</b><span>' + esc(b) + '</span></div>'; }
+function tt(s) { return s === 'Mở' ? '<span class="chip xanh">đang mở</span>' : s === 'Đóng' ? '<span class="chip do">đóng</span>' : '<span class="chip mo">' + esc(s || 'nháp') + '</span>'; }
+function bar(p) { return p === null ? '<span class="mo">–</span>' : '<div class="thanh"><i style="width:' + Math.min(100, p) + '%"></i></div><span class="nho">' + p + '%</span>'; }
+
+/* ---------- Kiểm tra kiến thức ---------- */
+function veNoiDung() {
+  var nd = ND[KHOI];
+  if (!nd) { cho(); goi('gvMonNoiDung', [VE, KHOI], function (r) { ND[KHOI] = r; veNoiDung(); }, loiVung); return; }
+  var h = '<div class="the"><b>Việc của thầy cô:</b> đọc từng bài, từng câu; đối chiếu SGK ở trang ghi bên dưới, rồi bấm <b>Đúng</b>, <b>Cần sửa</b> hoặc <b>Sai</b> (kèm ghi chú). Góp ý được lưu vào trang «Góp ý nội dung» để cô chủ bảng tính sửa. Thầy cô không sửa trực tiếp được câu hỏi hay điểm.' +
+    '<div class="nho">Câu có % đúng của HS quá thấp (dưới 40% từ 5 lượt) được gắn ⚠️ để kiểm tra lại đáp án.</div></div>';
+  h += '<h3>📖 Bài Khám phá khối ' + KHOI + ' (' + nd.bai.length + ')</h3>';
+  h += nd.bai.length ? nd.bai.map(baiHTML).join('') : '<div class="the nho">Chưa có bài Khám phá.</div>';
+  h += '<h3>❓ Câu hỏi khối ' + KHOI + ' (' + nd.cau.length + ')</h3>';
+  h += nd.cau.length ? nd.cau.map(cauHTML).join('') : '<div class="the nho">Chưa có câu hỏi.</div>';
+  $('vung').innerHTML = h;
+}
+function nhanGY(g) {
+  if (!g) return '<span class="chip mo">chưa duyệt</span>';
+  var c = g.kl === 'Đúng' ? 'xanh' : g.kl === 'Sai' ? 'do' : 'vang';
+  return '<span class="chip ' + c + '">' + esc(g.kl) + (g.xuLy ? ' · cô đã xử lý' : '') + '</span>';
+}
+function khungGY(loai, ma, g) {
+  var id = 'gy_' + ma;
+  return '<div class="gy" id="' + id + '"><input placeholder="Ghi chú (bắt buộc nếu Cần sửa / Sai)" maxlength="600" value="' + esc(g && g.kl !== 'Đúng' ? g.ghiChu : '') + '">' +
+    ['Đúng', 'Cần sửa', 'Sai'].map(function (kl) { return '<button onclick="guiGY(\'' + loai + '\',\'' + ma + '\',\'' + kl + '\')">' + (kl === 'Đúng' ? '✅ ' : kl === 'Sai' ? '❌ ' : '⚠️ ') + kl + '</button>'; }).join('') + '</div>' +
+    (g ? '<div class="nho">Lần gần nhất: ' + esc(g.kl) + ' lúc ' + esc(g.luc) + (g.ghiChu ? ' — ' + esc(g.ghiChu) : '') + '</div>' : '');
+}
+function baiHTML(b) {
+  var h = '<details><summary>' + esc(b.ma) + ' · ' + esc(b.ten) + ' ' + tt(b.tt) + ' ' + nhanGY(b.gopY) + '</summary><div class="nd">';
+  if (b.trang) h += '<div class="nho">Căn cứ: ' + esc(b.trang) + '</div>';
+  if (b.mucTieu.length) h += '<div class="tb"><b>Mục tiêu:</b> ' + b.mucTieu.map(esc).join('; ') + '</div>';
+  h += b.muc.map(function (m) {
+    return '<div><b>' + esc(m.tieuDe) + '</b><ul>' + m.tomTat.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      m.cau.map(function (c) { return '<div class="tb">' + esc(c.hoi) + (c.cach ? ' <span class="nho">(trả lời bằng ' + { tay: 'giơ tay', nghieng: 'nghiêng đầu', ngon: 'giơ ngón tay' }[c.cach] + ')</span>' : '') + (c.lc || []).map(function (x, i) { return '<div class="pa' + (i === c.dap ? ' dung' : '') + '">' + 'ABCD'.charAt(i) + '. ' + esc(x) + (i === c.dap ? ' ✓' : '') + '</div>'; }).join('') + (c.y || []).map(function (y) { return '<div class="pa' + (y.dung ? ' dung' : '') + '">' + (y.dung ? 'Đúng ✓ · ' : 'Sai ✓ · ') + esc(y.noi) + '</div>'; }).join('') + '<div class="giai">' + esc(c.giai) + '</div></div>'; }).join('') + '</div>';
+  }).join('');
+  return h + khungGY('Bài Khám phá', b.ma, b.gopY) + '</div></details>';
+}
+function cauHTML(c) {
+  var lanDung = c.luot ? Math.round(100 * c.dung / c.luot) : null;
+  var canh = c.luot >= 5 && lanDung < 40 ? ' <span class="chip do">⚠️ ' + lanDung + '% đúng</span>' : (c.luot ? ' <span class="chip mo">' + lanDung + '% đúng / ' + c.luot + ' lượt</span>' : '');
+  var h = '<details><summary>' + esc(c.ma) + ' · ' + esc(c.hoi).slice(0, 90) + canh + ' ' + nhanGY(c.gopY) + '</summary><div class="nd">';
+  h += '<div class="nho">' + esc(c.chuDe) + ' · mức ' + esc(c.muc) + (c.trang ? ' · ' + esc(c.trang) : '') + '</div><p>' + esc(c.hoi) + '</p>';
+  if (c.dang === 'DS') {
+    var da = String(c.dapAn).replace(/\s+/g, '').split('');
+    h += c.pa.map(function (x, i) { var d = da[i] === 'Đ'; return '<div class="pa' + (d ? ' dung' : '') + '">' + 'abcd'.charAt(i) + ') ' + esc(x) + ' → <b>' + (d ? 'Đúng' : 'Sai') + '</b>' + (c.loi[i] ? ' <span class="nho">(' + esc(c.loi[i]) + ')</span>' : '') + '</div>'; }).join('');
+  } else {
+    h += c.pa.map(function (x, i) { var d = 'ABCD'.charAt(i) === String(c.dapAn).trim().toUpperCase(); return '<div class="pa' + (d ? ' dung' : '') + '">' + 'ABCD'.charAt(i) + '. ' + esc(x) + (d ? ' ✓' : (c.loi[i] ? ' <span class="nho">(chọn sai vì: ' + esc(c.loi[i]) + ')</span>' : '')) + '</div>'; }).join('');
+  }
+  h += '<div class="giai"><b>Giải thích:</b> ' + esc(c.giai) + '</div>';
+  if (c.goiY && c.goiY.length) h += '<div class="nho">Gợi ý cho HS: ' + c.goiY.map(esc).join(' / ') + '</div>';
+  return h + khungGY('Câu hỏi', c.ma, c.gopY) + '</div></details>';
+}
+function guiGY(loai, ma, kl) {
+  var box = $('gy_' + ma), ghi = box.querySelector('input').value;
+  if (kl !== 'Đúng' && !ghi.trim()) { alert('Thầy cô ghi giúp chỗ cần sửa vào ô ghi chú nhé.'); return; }
+  var nut = box.querySelectorAll('button'); nut.forEach(function (n) { n.disabled = true; });
+  goi('gvMonGopY', [VE, loai, ma, kl, ghi], function (r) {
+    var nd = ND[KHOI]; var xs = (loai === 'Câu hỏi' ? nd.cau : nd.bai);
+    xs.forEach(function (x) { if (x.ma === ma) x.gopY = { kl: kl, ghiChu: ghi, luc: r.luc, xuLy: false }; });
+    DG = null; veNoiDung();
+    var again = $('gy_' + ma); if (again && again.parentNode.parentNode) again.parentNode.parentNode.open = true;
+  }, function (m) { nut.forEach(function (n) { n.disabled = false; }); alert(m); });
+}
+
+/* ---------- Giao nhiệm vụ về nhà ---------- */
+function homNay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function veNhiemVu() {
+  if (!LOP) { cho(); goi('gvMonLop', [VE], function (r) { LOP = r; veNhiemVu(); }, loiVung); return; }
+  if (!NV) { cho(); goi('gvMonNhiemVu', [VE], function (r) { NV = r; veNhiemVu(); }, loiVung); return; }
+  var opt = LOP.lop.map(function (l) { return '<option value="' + esc(l.lop) + '">Lớp ' + esc(l.lop) + ' (' + l.siSo + ' HS)</option>'; }).join('') +
+    LOP.khoi.map(function (k) { return '<option value="' + esc(k.ma) + '">' + esc(k.ten) + ' (' + k.siSo + ' HS)</option>'; }).join('');
+  var h = '<div class="the"><b>Giao nhiệm vụ về nhà</b><div class="nho">Học sinh vào app (nút «Nhiệm vụ về nhà») sẽ thấy ngay, đúng lớp được giao. Gắn mã đề hoặc mã bài Khám phá thì máy tự biết em nào đã làm; để trống thì em tự bấm «Em đã làm xong».</div>' +
+    '<div class="luoi" style="margin-top:8px"><div><label class="nho">Giao cho</label><select id="nvLop" style="width:100%;padding:8px;border:1px solid var(--vien);border-radius:8px">' + (opt || '<option value="">(chưa có lớp)</option>') + '</select></div>' +
+    '<div><label class="nho">Hạn nộp</label><input id="nvHan" type="date" value="' + homNay() + '" min="' + homNay() + '"></div>' +
+    '<div><label class="nho">Gắn với mã đề / mã bài (không bắt buộc)</label><input id="nvGan" placeholder="VD: ' + esc(MON) + '7-ON3 hoặc ' + esc(MON) + '7-B2"></div></div>' +
+    '<label class="nho" style="display:block;margin-top:8px">Tiêu đề</label><input id="nvTieuDe" maxlength="120" placeholder="VD: Ôn tập chủ đề Số hữu tỉ">' +
+    '<label class="nho" style="display:block;margin-top:8px">Việc em cần làm</label><textarea id="nvND" rows="4" maxlength="1500" placeholder="Ghi rõ việc cần làm, làm ở đâu (vở, phiếu, app), nộp thế nào."></textarea>' +
+    '<div style="margin-top:10px"><button class="chinh" id="nvGui" onclick="giaoNV()">📌 Giao nhiệm vụ</button> <span class="loi" id="nvLoi"></span></div></div>';
+  h += '<div class="the"><b>Nhiệm vụ đã giao (' + NV.length + ')</b>';
+  h += NV.length ? NV.map(function (v) {
+    var p = v.tong ? Math.round(100 * v.xong / v.tong) : 0;
+    return '<details><summary>' + esc(v.tieuDe) + ' · ' + esc(v.lop) + ' · hạn ' + esc(v.han) + ' ' + (v.tt === 'Đóng' ? '<span class="chip mo">đã đóng</span>' : v.hetHan ? '<span class="chip vang">quá hạn</span>' : '<span class="chip xanh">đang mở</span>') +
+      ' <span class="chip mo">' + v.xong + '/' + v.tong + ' đã xong</span></summary><div class="nd"><div class="thanh"><i style="width:' + p + '%"></i></div>' +
+      '<p style="white-space:pre-wrap">' + esc(v.noiDung) + '</p>' + (v.gan ? '<div class="nho">Gắn với: ' + esc(v.gan) + ' (máy tự ghi nhận)</div>' : '<div class="nho">Nhiệm vụ tự do (em tự bấm đã làm xong)</div>') +
+      '<div class="nho">Giao lúc ' + esc(v.giao) + '</div>' +
+      (v.chua.length ? '<div class="tb"><b>Chưa xong (' + (v.tong - v.xong) + '):</b> ' + v.chua.map(esc).join(', ') + (v.tong - v.xong > v.chua.length ? '…' : '') + '</div>' : '<div class="tb">🎉 Cả lớp đã xong.</div>') +
+      '<div class="gy"><button onclick="dongNV(\'' + esc(v.ma) + '\',' + (v.tt === 'Đóng' ? 'false' : 'true') + ')">' + (v.tt === 'Đóng' ? 'Mở lại' : 'Đóng nhiệm vụ') + '</button></div></div></details>';
+  }).join('') : '<div class="nho">Chưa giao nhiệm vụ nào.</div>';
+  $('vung').innerHTML = h + '</div>';
+}
+function giaoNV() {
+  var d = { lop: $('nvLop').value, han: $('nvHan').value, gan: $('nvGan').value, tieuDe: $('nvTieuDe').value, noiDung: $('nvND').value };
+  $('nvLoi').textContent = ''; $('nvGui').disabled = true;
+  goi('gvMonGiaoBai', [VE, d], function () { NV = null; veNhiemVu(); }, function (m) { $('nvGui').disabled = false; $('nvLoi').textContent = m; });
+}
+function dongNV(ma, dong) { goi('gvMonDongNV', [VE, ma, dong], function () { NV = null; veNhiemVu(); }); }
+
+/* ---------- Góp ý đã gửi ---------- */
+function veGopY() {
+  if (!DG) { cho(); goi('gvMonGopYDaGui', [VE], function (r) { DG = r; veGopY(); }, loiVung); return; }
+  $('vung').innerHTML = '<div class="the"><b>Góp ý đã gửi (' + DG.length + ')</b><div class="nho">Cô chủ bảng tính xử lý rồi đánh dấu ở trang «Góp ý nội dung».</div>' +
+    (DG.length ? '<div class="cuon"><table><tr><th>Lúc</th><th>Loại</th><th>Mã</th><th>Kết luận</th><th>Ghi chú</th><th>Cô đã xử lý</th></tr>' + DG.map(function (g) {
+      return '<tr><td>' + esc(g.luc) + '</td><td>' + esc(g.loai) + '</td><td>' + esc(g.ma) + '</td><td>' + nhanGY({ kl: g.kl, xuLy: false }) + '</td><td>' + esc(g.ghiChu) + '</td><td>' + (g.xuLy ? '✅' : '') + '</td></tr>';
+    }).join('') + '</table></div>' : '<p class="nho">Chưa có góp ý nào.</p>') + '</div>';
+}
+</script>
+</body>
+</html>
