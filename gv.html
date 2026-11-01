@@ -45,6 +45,7 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
 .gy input { flex:1; min-width:200px; }
 .tb { background:var(--nhat); padding:8px 12px; border-radius:8px; margin:8px 0; }
 .nho { font-size:13px; color:var(--mo); }
+.hop label { display:block; margin:10px 0 4px; font-weight:600; }
 @media (max-width:600px){ header h1{font-size:15px} main{padding:10px} }
 </style>
 </head>
@@ -53,6 +54,7 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
   <h1 id="tieuDe"></h1>
   <span class="nho" style="color:#fff" id="luc"></span>
   <button onclick="lamMoi()">🔄 Làm mới</button>
+  <button onclick="moMK()">🔑 Đổi mật khẩu</button>
   <button onclick="thoat()">Đăng xuất</button>
 </header>
 
@@ -68,6 +70,18 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
   </div>
 </main>
 
+<div id="hopMK" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:16px">
+  <div class="the hop" style="max-width:400px;width:100%;margin:0">
+    <h3 style="margin-top:0">🔑 Đổi mật khẩu</h3>
+    <div class="nho">Chọn mật khẩu dễ nhớ: từ 6 chữ hoặc số trở lên, chỉ dùng chữ không dấu và số. Máy không phân biệt chữ hoa với chữ thường.</div>
+    <label for="mkCu">Mật khẩu hiện tại</label><input id="mkCu" type="password" autocomplete="current-password">
+    <label for="mkMoi">Mật khẩu mới</label><input id="mkMoi" type="password" autocomplete="new-password">
+    <label for="mkMoi2">Nhập lại mật khẩu mới</label><input id="mkMoi2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doiMK()">
+    <div class="loi" id="loiMK"></div>
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="chinh" id="nutMK" onclick="doiMK()">Lưu mật khẩu mới</button><button onclick="dongMK()">Hủy</button></div>
+  </div>
+</div>
+
 <main id="chinh" style="display:none">
   <div class="tab" id="cacTab"></div>
   <div class="khoi" id="chonKhoi"></div>
@@ -79,7 +93,7 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -121,9 +135,18 @@ function vao() {
 }
 function thoat(thongBao) {
   if (VE) { try { G.gvMonThoat(VE); } catch (e) { /* bỏ qua */ } }
-  VE = ''; TD = null; ND = {}; DG = null;
+  VE = ''; TD = null; ND = {}; DG = null; dongMK();
   $('chinh').style.display = 'none'; $('dau').style.display = 'none'; $('dangNhap').style.display = '';
   $('loiDN').textContent = typeof thongBao === 'string' ? thongBao : '';
+}
+function moMK() { ['mkCu', 'mkMoi', 'mkMoi2'].forEach(function (i) { $(i).value = ''; }); $('loiMK').textContent = ''; $('hopMK').style.display = 'flex'; $('mkCu').focus(); }
+function dongMK() { $('hopMK').style.display = 'none'; }
+function doiMK() {
+  if ($('mkMoi').value !== $('mkMoi2').value) { $('loiMK').textContent = 'Hai lần nhập mật khẩu mới chưa giống nhau.'; return; }
+  $('nutMK').disabled = true; $('loiMK').textContent = '';
+  goi('gvMonDoiMatKhau', [VE, $('mkCu').value, $('mkMoi').value, $('mkMoi2').value], function () {
+    $('nutMK').disabled = false; dongMK(); alert('Đã đổi mật khẩu. Lần sau thầy cô đăng nhập bằng mật khẩu mới nhé.');
+  }, function (m) { $('nutMK').disabled = false; $('loiMK').textContent = m; });
 }
 function lamMoi() { TD = null; ND = {}; DG = null; NV = null; LOP = null; ve(); }
 
