@@ -112,7 +112,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai', 'gvMonOnTapBai', 'gvMonGiaoOnTap'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -129,7 +129,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
   window.google = { script: { run: tao(null, null) } };
 })();
 var G = (window.google && google.script && google.script.run) || null;
-var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '', KHOIOK = null;
+var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '', KHOIOK = null, ONLOP = '', ONTAP = null;
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -168,7 +168,7 @@ function doiMK() {
     $('nutMK').disabled = false; dongMK(); alert('Đã đổi mật khẩu. Lần sau thầy cô đăng nhập bằng mật khẩu mới nhé.');
   }, function (m) { $('nutMK').disabled = false; $('loiMK').textContent = m; });
 }
-function lamMoi() { TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ve(); }
+function lamMoi() { ONTAP = null; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ve(); }
 
 function ve() {
   var t = [['lop', '🏫 Mở bài trên lớp'], ['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
@@ -362,6 +362,46 @@ function thoatChieu() {
 }
 function toanManChieu() { var e = $('chieu'); if (e.requestFullscreen) e.requestFullscreen(); else alert('Thầy cô bấm F11 để chiếu toàn màn hình nhé.'); }
 
+
+/* ---------- 📚 Ôn tập theo bài: tích chọn để giao về nhà ---------- */
+function cardOnTap(opt) {
+  return '<div class="the" id="onTapThe"><b>📚 Ôn tập theo bài (đã soạn sẵn, đang khoá)</b><div class="nho">Mỗi bài Khám phá có một đề ôn tập 5 câu bám sát bài đó. Lớp học đến bài nào thì thầy cô tích chọn giao ôn tập đến bài đó; máy tự mở đề cho học sinh khi giao.</div>' +
+    '<div class="luoi" style="margin-top:8px"><div><label class="nho" for="otLop">Giao cho</label><select id="otLop" onchange="ONLOP=this.value;ONTAP=null;taiOnTap()">' + (opt || '<option value="">(chưa có lớp)</option>') + '</select></div>' +
+    '<div><label class="nho" for="otHan">Hạn nộp</label><input id="otHan" type="date" value="' + homNay() + '" min="' + homNay() + '"></div></div>' +
+    '<div id="otDs" style="margin-top:8px"><span class="nho">Đang tải…</span></div>' +
+    '<label class="nho" for="otGhi" style="display:block;margin-top:8px">Lời dặn cho học sinh (không bắt buộc)</label><input id="otGhi" maxlength="300" placeholder="VD: Làm xong trước tiết sau, em nào sai nhiều xem lại bài Khám phá.">' +
+    '<div style="margin-top:10px"><button class="chinh" id="otNut" onclick="giaoOnTap()">📌 Giao các bài đã tích</button> <span class="loi" id="otLoi"></span></div></div>';
+}
+function taiOnTap() {
+  if (!ONLOP) return;
+  var lop = ONLOP;
+  if (ONTAP && ONTAP.lop === lop) { veOnTap(); return; }
+  if ($('otDs')) $('otDs').innerHTML = '<span class="nho">Đang tải…</span>';
+  goi('gvMonOnTapBai', [VE, lop], function (r) { if (r.lop === ONLOP) { ONTAP = r; veOnTap(); } }, function (m) { if ($('otDs')) $('otDs').innerHTML = '<span class="loi">' + esc(m) + '</span>'; });
+}
+function veOnTap() {
+  var o = $('otDs'); if (!o || !ONTAP) return;
+  if (!ONTAP.ds.length) { o.innerHTML = '<span class="nho">Khối này chưa có bài ôn tập.</span>'; return; }
+  o.innerHTML = ONTAP.ds.map(function (x) {
+    var pt = x.tong ? Math.round(100 * x.xong / x.tong) : 0;
+    var tt = x.daGiao ? '<span class="chip xanh">đã giao, đang mở</span>' : x.dangMo ? '<span class="chip vang">đang mở (chưa giao lớp này)</span>' : '<span class="chip mo">🔒 đang khoá</span>';
+    var hoc = x.tong ? '<span class="chip ' + (pt >= 50 ? 'xanh' : 'mo') + '">Khám phá: ' + x.xong + '/' + x.tong + ' em đã học xong (' + pt + '%)</span>' : '';
+    return '<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid var(--vien);border-radius:8px;margin:5px 0;background:' + (x.daGiao ? '#f1f8f3' : '#fff') + '">' +
+      '<input type="checkbox" class="otCk" style="width:auto;margin-top:5px" value="' + esc(x.ma) + '"' + (x.daGiao ? ' disabled' : '') + '>' +
+      '<span><b>Bài ' + x.so + ': ' + esc(x.tenBai) + '</b> <span class="nho">· ' + x.soCau + ' câu</span><br>' + hoc + ' ' + tt + '</span></label>';
+  }).join('');
+}
+function giaoOnTap() {
+  var ds = [].map.call(document.querySelectorAll('.otCk:checked'), function (c) { return c.value; });
+  if (!ds.length) { $('otLoi').textContent = 'Thầy cô tích chọn ít nhất một bài ôn tập nhé.'; return; }
+  $('otLoi').textContent = ''; $('otNut').disabled = true;
+  goi('gvMonGiaoOnTap', [VE, { lop: ONLOP, ds: ds, han: $('otHan').value, ghiChu: $('otGhi').value }], function (r) {
+    $('otNut').disabled = false; ONTAP = null; NV = null;
+    alert('Đã giao ' + r.so + ' bài ôn tập cho ' + (/^K/.test(ONLOP) ? ONLOP.replace('K', 'khối ') : 'lớp ' + ONLOP) + (r.bo ? ' (' + r.bo + ' bài đã giao từ trước, bỏ qua)' : '') + '. Học sinh vào app, bấm «Nhiệm vụ về nhà» là thấy.');
+    veNhiemVu();
+  }, function (m) { $('otNut').disabled = false; $('otLoi').textContent = m; });
+}
+
 /* ---------- Giao nhiệm vụ về nhà ---------- */
 function homNay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function veNhiemVu() {
@@ -369,7 +409,7 @@ function veNhiemVu() {
   if (!NV) { cho(); goi('gvMonNhiemVu', [VE], function (r) { NV = r; veNhiemVu(); }, loiVung); return; }
   var opt = LOP.lop.map(function (l) { return '<option value="' + esc(l.lop) + '">Lớp ' + esc(l.lop) + ' (' + l.siSo + ' HS)</option>'; }).join('') +
     LOP.khoi.map(function (k) { return '<option value="' + esc(k.ma) + '">' + esc(k.ten) + ' (' + k.siSo + ' HS)</option>'; }).join('');
-  var h = '<div class="the"><b>Giao nhiệm vụ về nhà</b><div class="nho">Học sinh vào app (nút «Nhiệm vụ về nhà») sẽ thấy ngay, đúng lớp được giao. Gắn mã đề hoặc mã bài Khám phá thì máy tự biết em nào đã làm; để trống thì em tự bấm «Em đã làm xong».</div>' +
+  var h = cardOnTap(opt) + '<div class="the"><b>Giao nhiệm vụ khác về nhà</b><div class="nho">Học sinh vào app (nút «Nhiệm vụ về nhà») sẽ thấy ngay, đúng lớp được giao. Gắn mã đề hoặc mã bài Khám phá thì máy tự biết em nào đã làm; để trống thì em tự bấm «Em đã làm xong».</div>' +
     '<div class="luoi" style="margin-top:8px"><div><label class="nho">Giao cho</label><select id="nvLop" style="width:100%;padding:8px;border:1px solid var(--vien);border-radius:8px">' + (opt || '<option value="">(chưa có lớp)</option>') + '</select></div>' +
     '<div><label class="nho">Hạn nộp</label><input id="nvHan" type="date" value="' + homNay() + '" min="' + homNay() + '"></div>' +
     '<div><label class="nho">Gắn với mã đề / mã bài (không bắt buộc)</label><input id="nvGan" placeholder="VD: ' + esc(MON) + '7-ON3 hoặc ' + esc(MON) + '7-B2"></div></div>' +
@@ -387,6 +427,7 @@ function veNhiemVu() {
       '<div class="gy"><button onclick="dongNV(\'' + esc(v.ma) + '\',' + (v.tt === 'Đóng' ? 'false' : 'true') + ')">' + (v.tt === 'Đóng' ? 'Mở lại' : 'Đóng nhiệm vụ') + '</button></div></div></details>';
   }).join('') : '<div class="nho">Chưa giao nhiệm vụ nào.</div>';
   $('vung').innerHTML = h + '</div>';
+  var otL = $('otLop'); if (otL) { var co = [].map.call(otL.options, function (o) { return o.value; }); if (ONLOP && co.indexOf(ONLOP) >= 0) otL.value = ONLOP; else ONLOP = otL.value; taiOnTap(); }
 }
 function giaoNV() {
   var d = { lop: $('nvLop').value, han: $('nvHan').value, gan: $('nvGan').value, tieuDe: $('nvTieuDe').value, noiDung: $('nvND').value };
