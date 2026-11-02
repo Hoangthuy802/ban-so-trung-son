@@ -96,6 +96,11 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
   </div>
 </div>
 
+<div id="chieu" style="display:none;position:fixed;inset:0;z-index:90;background:#000">
+  <div style="position:absolute;top:6px;right:8px;z-index:2;display:flex;gap:6px"><button onclick="toanManChieu()">⛶ Toàn màn hình</button><button onclick="thoatChieu()">✕ Thoát chiếu</button></div>
+  <div id="chieuKhung" style="position:absolute;inset:0"></div>
+</div>
+
 <main id="chinh" style="display:none">
   <div class="tab" id="cacTab"></div>
   <div class="khoi" id="chonKhoi"></div>
@@ -107,7 +112,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -124,7 +129,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
   window.google = { script: { run: tao(null, null) } };
 })();
 var G = (window.google && google.script && google.script.run) || null;
-var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '';
+var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '', KHOIOK = null;
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -141,9 +146,10 @@ function vao() {
   $('loiDN').textContent = ''; $('nutVao').disabled = true;
   goi('gvMonDangNhap', [$('tk').value, $('mk').value], function (r) {
     $('nutVao').disabled = false; $('mk').value = '';
+    KHOIOK = r.lop ? r.lop.map(function (l) { return Number((String(l).match(/\d/) || [0])[0]); }).filter(function (k, i, a) { return k && a.indexOf(k) === i; }).sort() : null; if (KHOIOK && KHOIOK.length) KHOI = KHOIOK[0];
     VE = r.ve; MON = r.mon; TENMON = r.tenMon; TAB = 'lop'; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null;
     $('dangNhap').style.display = 'none'; $('chinh').style.display = ''; $('dau').style.display = '';
-    $('tieuDe').textContent = '👩‍🏫 Giáo viên ' + TENMON + ' · ' + r.tk;
+    $('tieuDe').textContent = '👩‍🏫 ' + (r.ten || 'Giáo viên') + ' · ' + TENMON + (r.lop ? ' · lớp ' + (r.lop.join(', ') || '(chưa có lớp)') : '') + ' · ' + r.tk;
     ve();
   }, function (m) { $('nutVao').disabled = false; $('loiDN').textContent = m; });
 }
@@ -169,7 +175,7 @@ function ve() {
   $('cacTab').innerHTML = t.map(function (x) { return '<button class="' + (TAB === x[0] ? 'bat' : '') + '" onclick="doiTab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('');
   $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' || TAB === 'lop' ? 'none' : '';
   if (TAB !== 'lop') dungHen();
-  $('chonKhoi').innerHTML = '<span class="nho">Khối:</span>' + [6, 7, 8, 9].map(function (k) { return '<button class="' + (KHOI === k ? 'bat' : '') + '" onclick="doiKhoi(' + k + ')">Khối ' + k + '</button>'; }).join('');
+  $('chonKhoi').innerHTML = '<span class="nho">Khối:</span>' + [6, 7, 8, 9].filter(function (k) { return !KHOIOK || KHOIOK.indexOf(k) >= 0; }).map(function (k) { return '<button class="' + (KHOI === k ? 'bat' : '') + '" onclick="doiKhoi(' + k + ')">Khối ' + k + '</button>'; }).join('');
   if (TAB === 'lop') veLop(); else if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else veGopY();
 }
 function doiTab(t) { TAB = t; ve(); }
@@ -231,7 +237,7 @@ function khungGY(loai, ma, g) {
     (g ? '<div class="nho">Lần gần nhất: ' + esc(g.kl) + ' lúc ' + esc(g.luc) + (g.ghiChu ? ' — ' + esc(g.ghiChu) : '') + '</div>' : '');
 }
 function baiHTML(b) {
-  var h = '<details><summary>' + esc(b.ma) + ' · ' + esc(b.ten) + ' ' + tt(b.tt) + ' ' + nhanGY(b.gopY) + '</summary><div class="nd">';
+  var h = '<details><summary>' + esc(b.ma) + ' · ' + esc(b.ten) + ' ' + tt(b.tt) + ' ' + nhanGY(b.gopY) + '</summary><div class="nd"><div style="margin:8px 0"><button class="chinh" onclick="chieuBai(\'' + esc(b.ma) + '\')">📺 Chiếu bài này trên lớp</button> <span class="nho">Mở trọn bài trên máy thầy cô để dạy trước lớp.</span></div>';
   if (b.trang) h += '<div class="nho">Căn cứ: ' + esc(b.trang) + '</div>';
   if (b.mucTieu.length) h += '<div class="tb"><b>Mục tiêu:</b> ' + b.mucTieu.map(esc).join('; ') + '</div>';
   h += b.muc.map(function (m) {
@@ -279,7 +285,8 @@ function veLop() {
     '<div class="luoi" style="margin-top:8px"><div><label class="nho" for="lopLop">Lớp</label><select id="lopLop" onchange="LOPCHON=this.value;datND()">' + (opt || '<option value="">(chưa có lớp)</option>') + '</select></div>' +
     '<div style="grid-column:span 2"><label class="nho" for="lopGan">Nội dung</label><select id="lopGan"></select></div></div>' +
     '<label class="nho" for="lopGhi" style="display:block;margin-top:8px">Lời dặn cho học sinh (không bắt buộc)</label><input id="lopGhi" maxlength="300" placeholder="VD: Làm theo nhóm đôi, xong thì giơ tay báo thầy cô.">' +
-    '<div style="margin-top:10px"><button class="chinh" id="lopNut" onclick="moLop()">▶ Mở cho lớp ngay</button> <span id="lopTB" class="nho"></span></div></div>' +
+    '<div style="margin-top:10px"><button class="chinh" id="lopNut" onclick="moLop()">▶ Mở cho lớp ngay</button> <button id="lopChieu" onclick="chieuChon()">📺 Chiếu bài này trên máy thầy cô</button> <span id="lopTB" class="nho"></span>' +
+    '<div class="nho" style="margin-top:6px">«Mở cho lớp ngay»: các em tự làm trên máy mình. «Chiếu bài»: thầy cô mở bài Khám phá trên máy này nối tivi, cả lớp trả lời bằng cử chỉ trước camera, không cần máy riêng và không ghi tiến độ từng em.</div></div></div>' +
     '<div id="bang"></div>';
   $('vung').innerHTML = h;
   var co = LOP.lop.map(function (l) { return l.lop; }).concat(LOP.khoi.map(function (k) { return k.ma; }));
@@ -332,6 +339,28 @@ function theBang(v) {
 }
 function toanMan(id) { var e = $(id); if (e && e.requestFullscreen) e.requestFullscreen(); else alert('Trình duyệt này chưa cho chiếu toàn màn hình. Thầy cô bấm F11 nhé.'); }
 function dongLop(ma) { if (!confirm('Đóng bài này cho học sinh trên lớp?')) return; goi('gvMonDongNV', [VE, ma, true], function () { NV = null; taiBang(false); }); }
+
+
+/* ---------- Chiếu bài Khám phá trên máy thầy cô (nối tivi) ---------- */
+function chieuBai(ma) {
+  goi('gvMonMoBai', [VE, ma], function (r) {
+    var f = document.createElement('iframe');
+    f.title = r.ten; f.allow = 'camera; microphone; autoplay; fullscreen';
+    f.style.cssText = 'width:100%;height:100%;border:0;background:#fff'; f.srcdoc = r.html;
+    $('chieuKhung').innerHTML = ''; $('chieuKhung').appendChild(f);
+    $('chieu').style.display = 'block'; document.body.style.overflow = 'hidden';
+  }, function (m) { alert(m); });
+}
+function chieuChon() {
+  var v = $('lopGan') ? $('lopGan').value : '';
+  if (!/-B\d+$/i.test(v)) { alert('Chỉ chiếu được bài Khám phá. Thầy cô chọn một bài ở mục «Bài Khám phá» nhé.'); return; }
+  chieuBai(v);
+}
+function thoatChieu() {
+  $('chieuKhung').innerHTML = ''; $('chieu').style.display = 'none'; document.body.style.overflow = '';
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+}
+function toanManChieu() { var e = $('chieu'); if (e.requestFullscreen) e.requestFullscreen(); else alert('Thầy cô bấm F11 để chiếu toàn màn hình nhé.'); }
 
 /* ---------- Giao nhiệm vụ về nhà ---------- */
 function homNay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
