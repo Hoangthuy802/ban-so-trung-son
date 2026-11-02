@@ -112,7 +112,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai', 'gvMonOnTapBai', 'gvMonGiaoOnTap'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai', 'gvMonOnTapBai', 'gvMonGiaoOnTap', 'gvMonTaoDe', 'gvMonDeCuaToi', 'gvMonDongDe', 'gvMonXoaDe'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -171,12 +171,12 @@ function doiMK() {
 function lamMoi() { ONTAP = null; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ve(); }
 
 function ve() {
-  var t = [['lop', '🏫 Mở bài trên lớp'], ['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
+  var t = [['lop', '🏫 Mở bài trên lớp'], ['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['de', '✍️ Tạo đề của tôi'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
   $('cacTab').innerHTML = t.map(function (x) { return '<button class="' + (TAB === x[0] ? 'bat' : '') + '" onclick="doiTab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('');
-  $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' || TAB === 'lop' ? 'none' : '';
+  $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' || TAB === 'lop' || TAB === 'de' ? 'none' : '';
   if (TAB !== 'lop') dungHen();
   $('chonKhoi').innerHTML = '<span class="nho">Khối:</span>' + [6, 7, 8, 9].filter(function (k) { return !KHOIOK || KHOIOK.indexOf(k) >= 0; }).map(function (k) { return '<button class="' + (KHOI === k ? 'bat' : '') + '" onclick="doiKhoi(' + k + ')">Khối ' + k + '</button>'; }).join('');
-  if (TAB === 'lop') veLop(); else if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else veGopY();
+  if (TAB === 'lop') veLop(); else if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else if (TAB === 'de') veTaoDe(); else veGopY();
 }
 function doiTab(t) { TAB = t; ve(); }
 function doiKhoi(k) { KHOI = k; ve(); }
@@ -401,6 +401,87 @@ function giaoOnTap() {
     veNhiemVu();
   }, function (m) { $('otNut').disabled = false; $('otLoi').textContent = m; });
 }
+
+
+/* ---------- ✍️ Tạo đề của tôi: đưa nội dung bài ôn tập, bài kiểm tra lên app ---------- */
+var TDN = 0;
+function veTaoDe() {
+  if (!LOP) { cho(); goi('gvMonLop', [VE], function (r) { LOP = r; veTaoDe(); }, loiVung); return; }
+  var ks = [];
+  LOP.lop.forEach(function (l) { var k = Number((String(l.lop).match(/\d/) || [0])[0]); if (k && ks.indexOf(k) < 0) ks.push(k); });
+  ks.sort();
+  var h = '<div class="the"><b>✍️ Tạo đề ôn tập, đề kiểm tra</b><div class="nho">Thầy cô gõ từng câu hoặc dán nội dung từ Word vào ô bên dưới, bấm «Chuyển thành các câu», kiểm tra lại, rồi bấm «Tạo đề». Đề tạo ra <b>đang khoá</b>: học sinh chưa thấy cho tới khi thầy cô giao (đề ôn tập: tab «Giao nhiệm vụ về nhà»; đề kiểm tra: tab «Mở bài trên lớp»). Mỗi câu 4 lựa chọn A, B, C, D, một đáp án đúng.</div>' +
+    '<div class="luoi" style="margin-top:8px"><div><label class="nho" for="tdLoai">Loại đề</label><select id="tdLoai" onchange="$(\'tdPhut\').value=this.value===\'Kiểm tra\'?15:10"><option>Ôn tập</option><option>Kiểm tra</option></select></div>' +
+    '<div><label class="nho" for="tdKhoi">Khối</label><select id="tdKhoi">' + ks.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('') + '</select></div>' +
+    '<div><label class="nho" for="tdPhut">Thời gian (phút)</label><input id="tdPhut" type="number" min="3" max="120" value="10"></div></div>' +
+    '<label class="nho" for="tdTen" style="display:block;margin-top:8px">Tên đề</label><input id="tdTen" maxlength="100" placeholder="VD: Ôn tập chương 1 – Số hữu tỉ">' +
+    '<label class="nho" for="tdDan" style="display:block;margin-top:8px">Dán nội dung từ Word (không bắt buộc)</label><textarea id="tdDan" rows="7" placeholder="Câu 1. Số đối của -5 là:\nA. -5\nB. 5\nC. 0\nD. 1/5\nĐáp án: B\nGiải thích: Hai số đối nhau chỉ khác nhau về dấu.\n\nCâu 2. ..."></textarea>' +
+    '<div style="margin-top:6px"><button onclick="tdPhanTich()">🪄 Chuyển thành các câu</button> <button onclick="tdThem()">➕ Thêm một câu</button> <span class="nho" id="tdPT"></span></div>' +
+    '<div id="tdCau"></div>' +
+    '<div style="margin-top:10px"><button class="chinh" id="tdNut" onclick="tdTao()">💾 Tạo đề (đề đang khoá)</button> <span class="loi" id="tdLoi"></span></div></div>' +
+    '<div class="the"><b>Đề tôi đã tạo</b><div id="tdDs" class="nho">Đang tải…</div></div>';
+  $('vung').innerHTML = h;
+  tdThem(); tdThem(); tdThem();
+  tdTai();
+}
+function tdKhung(c) {
+  TDN++;
+  var r = ['A', 'B', 'C', 'D'].map(function (L, i) {
+    return '<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="radio" name="tdd' + TDN + '" value="' + L + '"' + (c && c.dapAn === L ? ' checked' : '') + ' style="width:auto" title="Chọn là đáp án đúng"><b>' + L + '</b><input class="tdp" maxlength="250" value="' + esc(c ? c.pa[i] : '') + '" placeholder="Lựa chọn ' + L + '"></div>';
+  }).join('');
+  return '<div class="the tdc" style="margin:8px 0;background:var(--nhat)"><div style="display:flex;justify-content:space-between;align-items:center"><b>Câu <span class="stt"></span></b><button onclick="this.closest(\'.tdc\').remove();tdDanSo()">✕ Xoá câu</button></div>' +
+    '<textarea class="tdh" rows="2" maxlength="600" placeholder="Nội dung câu hỏi">' + esc(c ? c.hoi : '') + '</textarea>' + r +
+    '<div class="nho" style="margin-top:4px">Chấm tròn bên trái lựa chọn đúng.</div><input class="tdg" maxlength="600" value="' + esc(c ? c.giai : '') + '" placeholder="Giải thích đáp án (không bắt buộc, học sinh xem sau khi làm)"></div>';
+}
+function tdThem(c) { $('tdCau').insertAdjacentHTML('beforeend', tdKhung(c)); tdDanSo(); }
+function tdDanSo() { [].forEach.call(document.querySelectorAll('#tdCau .stt'), function (e, i) { e.textContent = i + 1; }); }
+function tdParse(t) {
+  var ds = [], c = null, f = '';
+  String(t).replace(/\r/g, '').split('\n').forEach(function (L) {
+    L = L.trim(); if (!L) return;
+    var m;
+    if ((m = L.match(/^(?:câu\s*)?(\d+)\s*[\.\):]\s*(.*)$/i))) { c = { hoi: m[2], pa: ['', '', '', ''], dapAn: '', giai: '' }; ds.push(c); f = 'hoi'; return; }
+    if (!c) return;
+    if ((m = L.match(/^([A-Da-d])\s*[\.\)]\s*(.*)$/))) { var i = 'ABCD'.indexOf(m[1].toUpperCase()); c.pa[i] = m[2]; f = 'pa' + i; return; }
+    if ((m = L.match(/^(?:đáp án|dap an)(?:\s*đúng)?\s*[:\-]?\s*([A-Da-d])/i))) { c.dapAn = m[1].toUpperCase(); f = ''; return; }
+    if ((m = L.match(/^giải thích\s*[:\-]?\s*(.*)$/i))) { c.giai = m[1]; f = 'giai'; return; }
+    if (f === 'hoi') c.hoi += ' ' + L; else if (f.indexOf('pa') === 0) c.pa[Number(f.slice(2))] += ' ' + L; else if (f === 'giai') c.giai += ' ' + L;
+  });
+  return ds;
+}
+function tdPhanTich() {
+  var ds = tdParse($('tdDan').value);
+  if (!ds.length) { $('tdPT').textContent = 'Em chưa thấy câu nào. Mỗi câu bắt đầu bằng «Câu 1.» (hoặc «1.»), các lựa chọn bắt đầu bằng A. B. C. D., rồi «Đáp án: B».'; return; }
+  var tr = [].filter.call(document.querySelectorAll('#tdCau .tdc'), function (k) { return !k.querySelector('.tdh').value.trim() && ![].some.call(k.querySelectorAll('.tdp'), function (x) { return x.value.trim(); }); });
+  tr.forEach(function (k) { k.remove(); });   // bỏ các khung câu còn trống
+  ds.forEach(function (c) { tdThem(c); });
+  var thieu = ds.filter(function (c) { return !c.dapAn || c.pa.some(function (x) { return !x.trim(); }); }).length;
+  $('tdPT').textContent = 'Đã chuyển ' + ds.length + ' câu' + (thieu ? ', trong đó ' + thieu + ' câu còn thiếu lựa chọn hoặc đáp án: thầy cô bổ sung ở khung câu bên dưới.' : '.');
+  $('tdDan').value = '';
+}
+function tdTao() {
+  var cau = [].map.call(document.querySelectorAll('#tdCau .tdc'), function (k) {
+    var r = k.querySelector('input[type=radio]:checked');
+    return { hoi: k.querySelector('.tdh').value, pa: [].map.call(k.querySelectorAll('.tdp'), function (x) { return x.value; }), dapAn: r ? r.value : '', giai: k.querySelector('.tdg').value };
+  });
+  $('tdLoi').textContent = ''; $('tdNut').disabled = true;
+  goi('gvMonTaoDe', [VE, { cheDo: $('tdLoai').value, khoi: $('tdKhoi').value, ten: $('tdTen').value, phut: $('tdPhut').value, cau: cau }], function (r) {
+    $('tdNut').disabled = false; DM = null; ONTAP = null;
+    alert('Đã tạo đề «' + r.ten + '» (mã ' + r.ma + ', ' + r.soCau + ' câu). Đề đang khoá.\n' + ($('tdLoai').value === 'Ôn tập' ? 'Giao cho lớp: tab «Giao nhiệm vụ về nhà», khung «Ôn tập theo bài», mục cuối danh sách.' : 'Cho lớp làm: tab «Mở bài trên lớp», nhóm «Đề Kiểm tra».'));
+    veTaoDe();
+  }, function (m) { $('tdNut').disabled = false; $('tdLoi').textContent = m; });
+}
+function tdTai() {
+  goi('gvMonDeCuaToi', [VE], function (ds) {
+    var o = $('tdDs'); if (!o) return;
+    o.innerHTML = ds.length ? '<div class="cuon"><table><tr><th>Mã</th><th>Tên đề</th><th>Loại</th><th>Khối</th><th>Câu</th><th>Trạng thái</th><th>Bài nộp</th><th></th></tr>' + ds.map(function (d) {
+      return '<tr><td>' + esc(d.ma) + '</td><td>' + esc(d.ten) + '</td><td>' + esc(d.cheDo) + ' · ' + d.phut + ' phút</td><td>' + d.khoi + '</td><td>' + d.soCau + '</td><td>' + (d.dangMo ? '<span class="chip xanh">đang mở</span>' : '<span class="chip mo">🔒 khoá</span>') + '</td><td>' + d.nop + '</td>' +
+        '<td style="white-space:nowrap">' + (d.dangMo ? '<button onclick="tdDong(\'' + esc(d.ma) + '\')">Khoá đề</button> ' : '') + '<button onclick="tdXoa(\'' + esc(d.ma) + '\')">Xoá</button></td></tr>';
+    }).join('') + '</table></div>' : 'Thầy cô chưa tạo đề nào.';
+  }, function (m) { if ($('tdDs')) $('tdDs').innerHTML = '<span class="loi">' + esc(m) + '</span>'; });
+}
+function tdDong(ma) { goi('gvMonDongDe', [VE, ma], function () { DM = null; tdTai(); }); }
+function tdXoa(ma) { if (!confirm('Xoá đề ' + ma + ' và các câu hỏi của đề? Không khôi phục được.')) return; goi('gvMonXoaDe', [VE, ma], function () { DM = null; ONTAP = null; NV = null; tdTai(); }); }
 
 /* ---------- Giao nhiệm vụ về nhà ---------- */
 function homNay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
