@@ -46,6 +46,20 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
 .tb { background:var(--nhat); padding:8px 12px; border-radius:8px; margin:8px 0; }
 .nho { font-size:13px; color:var(--mo); }
 .hop label { display:block; margin:10px 0 4px; font-weight:600; }
+.bangvao { border:2px solid var(--chinh); background:#fff; }
+.bangvao h3 { margin:0 0 2px; font-size:19px; }
+.lonso { font-size:42px; font-weight:700; color:var(--chinh); line-height:1.1; }
+.thanh.lon { height:16px; border-radius:8px; margin:6px 0 10px; } .thanh.lon i { border-radius:8px; transition:width .6s; }
+.luoiem { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px; }
+.em { text-align:center; padding:6px 2px; border-radius:8px; border:1px solid var(--vien); background:#f1f3f8; color:var(--mo); font-size:13px; font-weight:600; }
+.em.xong { background:#e3f5ea; border-color:var(--xanh); color:var(--xanh); }
+.bangvao:fullscreen { background:#fff; padding:24px 32px; overflow:auto; }
+.bangvao:fullscreen h3 { font-size:34px; } .bangvao:fullscreen .lonso { font-size:84px; }
+.bangvao:fullscreen .luoiem { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
+.bangvao:fullscreen .em { font-size:22px; padding:12px 4px; }
+.bangvao:fullscreen .thanh.lon { height:28px; }
+.bangvao:fullscreen .nutbang { display:none; }
+select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); border-radius:8px; background:#fff; color:var(--chu); }
 @media (max-width:600px){ header h1{font-size:15px} main{padding:10px} }
 </style>
 </head>
@@ -93,7 +107,7 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -110,7 +124,7 @@ summary { padding:9px 12px; cursor:pointer; font-weight:600; }
   window.google = { script: { run: tao(null, null) } };
 })();
 var G = (window.google && google.script && google.script.run) || null;
-var VE = '', MON = '', TENMON = '', TAB = 'td', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null;
+var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '';
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -127,7 +141,7 @@ function vao() {
   $('loiDN').textContent = ''; $('nutVao').disabled = true;
   goi('gvMonDangNhap', [$('tk').value, $('mk').value], function (r) {
     $('nutVao').disabled = false; $('mk').value = '';
-    VE = r.ve; MON = r.mon; TENMON = r.tenMon; TAB = 'td'; TD = null; ND = {}; DG = null;
+    VE = r.ve; MON = r.mon; TENMON = r.tenMon; TAB = 'lop'; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null;
     $('dangNhap').style.display = 'none'; $('chinh').style.display = ''; $('dau').style.display = '';
     $('tieuDe').textContent = '👩‍🏫 Giáo viên ' + TENMON + ' · ' + r.tk;
     ve();
@@ -135,7 +149,7 @@ function vao() {
 }
 function thoat(thongBao) {
   if (VE) { try { G.gvMonThoat(VE); } catch (e) { /* bỏ qua */ } }
-  VE = ''; TD = null; ND = {}; DG = null; dongMK();
+  VE = ''; TD = null; ND = {}; DG = null; DM = null; BANG = null; dungHen(); dongMK();
   $('chinh').style.display = 'none'; $('dau').style.display = 'none'; $('dangNhap').style.display = '';
   $('loiDN').textContent = typeof thongBao === 'string' ? thongBao : '';
 }
@@ -148,14 +162,15 @@ function doiMK() {
     $('nutMK').disabled = false; dongMK(); alert('Đã đổi mật khẩu. Lần sau thầy cô đăng nhập bằng mật khẩu mới nhé.');
   }, function (m) { $('nutMK').disabled = false; $('loiMK').textContent = m; });
 }
-function lamMoi() { TD = null; ND = {}; DG = null; NV = null; LOP = null; ve(); }
+function lamMoi() { TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ve(); }
 
 function ve() {
-  var t = [['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
+  var t = [['lop', '🏫 Mở bài trên lớp'], ['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
   $('cacTab').innerHTML = t.map(function (x) { return '<button class="' + (TAB === x[0] ? 'bat' : '') + '" onclick="doiTab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('');
-  $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' ? 'none' : '';
+  $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' || TAB === 'lop' ? 'none' : '';
+  if (TAB !== 'lop') dungHen();
   $('chonKhoi').innerHTML = '<span class="nho">Khối:</span>' + [6, 7, 8, 9].map(function (k) { return '<button class="' + (KHOI === k ? 'bat' : '') + '" onclick="doiKhoi(' + k + ')">Khối ' + k + '</button>'; }).join('');
-  if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else veGopY();
+  if (TAB === 'lop') veLop(); else if (TAB === 'td') veTienDo(); else if (TAB === 'nd') veNoiDung(); else if (TAB === 'nv') veNhiemVu(); else veGopY();
 }
 function doiTab(t) { TAB = t; ve(); }
 function doiKhoi(k) { KHOI = k; ve(); }
@@ -251,6 +266,72 @@ function guiGY(loai, ma, kl) {
     var again = $('gy_' + ma); if (again && again.parentNode.parentNode) again.parentNode.parentNode.open = true;
   }, function (m) { nut.forEach(function (n) { n.disabled = false; }); alert(m); });
 }
+
+/* ---------- Mở bài trên lớp (dạy trực quan) ---------- */
+function dungHen() { if (HEN) { clearInterval(HEN); HEN = 0; } }
+function batHen() { dungHen(); HEN = setInterval(function () { if (TAB === 'lop' && VE && !document.hidden) taiBang(true); }, 10000); }
+function veLop() {
+  if (!LOP) { cho(); goi('gvMonLop', [VE], function (r) { LOP = r; veLop(); }, loiVung); return; }
+  if (!DM) { cho(); goi('gvMonDanhMuc', [VE], function (r) { DM = r; veLop(); }, loiVung); return; }
+  var opt = LOP.lop.map(function (l) { return '<option value="' + esc(l.lop) + '">Lớp ' + esc(l.lop) + ' (' + l.siSo + ' HS)</option>'; }).join('') +
+    LOP.khoi.map(function (k) { return '<option value="' + esc(k.ma) + '">' + esc(k.ten) + ' (' + k.siSo + ' HS)</option>'; }).join('');
+  var h = '<div class="the"><b>Mở bài cho cả lớp làm ngay</b><div class="nho">Chọn lớp và bài Khám phá, đề Ôn tập hoặc đề Kiểm tra. Máy mở cho học sinh (nếu đang đóng) và hiện bảng theo dõi em nào đã xong ngay bên dưới. Học sinh vào app bằng mã học sinh và mã PIN, bấm «Nhiệm vụ về nhà».</div>' +
+    '<div class="luoi" style="margin-top:8px"><div><label class="nho" for="lopLop">Lớp</label><select id="lopLop" onchange="LOPCHON=this.value;datND()">' + (opt || '<option value="">(chưa có lớp)</option>') + '</select></div>' +
+    '<div style="grid-column:span 2"><label class="nho" for="lopGan">Nội dung</label><select id="lopGan"></select></div></div>' +
+    '<label class="nho" for="lopGhi" style="display:block;margin-top:8px">Lời dặn cho học sinh (không bắt buộc)</label><input id="lopGhi" maxlength="300" placeholder="VD: Làm theo nhóm đôi, xong thì giơ tay báo thầy cô.">' +
+    '<div style="margin-top:10px"><button class="chinh" id="lopNut" onclick="moLop()">▶ Mở cho lớp ngay</button> <span id="lopTB" class="nho"></span></div></div>' +
+    '<div id="bang"></div>';
+  $('vung').innerHTML = h;
+  var co = LOP.lop.map(function (l) { return l.lop; }).concat(LOP.khoi.map(function (k) { return k.ma; }));
+  if (LOPCHON && co.indexOf(LOPCHON) >= 0) $('lopLop').value = LOPCHON; else LOPCHON = $('lopLop').value;
+  datND(); if (BANG) veBang(); taiBang(false); batHen();
+}
+/* danh sách nội dung theo khối của lớp đang chọn */
+function datND() {
+  var m = String(LOPCHON || '').match(/\d/), k = m ? Number(m[0]) : 0;
+  var nhan = function (x) { return esc(x.ma) + ' · ' + esc(x.ten) + (x.dangMo ? ' ✓ đang mở' : ' (đang đóng, máy sẽ mở)'); };
+  var bai = DM.bai.filter(function (x) { return x.khoi === k; });
+  var on = DM.de.filter(function (x) { return x.khoi === k && x.cheDo === 'Ôn tập'; });
+  var kt = DM.de.filter(function (x) { return x.khoi === k && x.cheDo !== 'Ôn tập'; });
+  var nhom = function (t, ds) { return ds.length ? '<optgroup label="' + t + '">' + ds.map(function (x) { return '<option value="' + esc(x.ma) + '">' + nhan(x) + '</option>'; }).join('') + '</optgroup>' : ''; };
+  $('lopGan').innerHTML = nhom('🧭 Bài Khám phá', bai) + nhom('📝 Đề Ôn tập', on) + nhom('✏️ Đề Kiểm tra', kt) || '<option value="">(khối này chưa có bài hay đề của môn thầy cô)</option>';
+}
+function moLop() {
+  var lop = $('lopLop').value, gan = $('lopGan').value;
+  if (!lop || !gan) { $('lopTB').textContent = 'Thầy cô chọn lớp và nội dung nhé.'; return; }
+  if (!confirm('Mở «' + $('lopGan').selectedOptions[0].textContent.split(' ·')[0] + '» cho ' + (/^K/.test(lop) ? 'cả ' + lop.replace('K', 'khối ') : 'lớp ' + lop) + ' làm ngay?')) return;
+  $('lopNut').disabled = true; $('lopTB').textContent = 'Đang mở…';
+  goi('gvMonMoLop', [VE, { lop: lop, gan: gan, ghiChu: $('lopGhi').value }], function (r) {
+    $('lopNut').disabled = false; $('lopTB').textContent = '✅ Đã mở «' + r.ten + '» cho lớp. ' + (r.ghiChu || ''); NV = null;
+    goi('gvMonDanhMuc', [VE], function (d) { DM = d; if (TAB === 'lop' && $('lopGan')) { datND(); $('lopGan').value = gan; } });
+    taiBang(false);
+  }, function (m) { $('lopNut').disabled = false; $('lopTB').textContent = ''; alert(m); });
+}
+function taiBang(im) {
+  if (!VE) return;
+  if (!im && !BANG && $('bang')) $('bang').innerHTML = '<div class="the nho">Đang tải bảng theo dõi…</div>';
+  goi('gvMonBangLop', [VE], function (r) { BANG = r; if (TAB === 'lop') veBang(); }, function (m) { if (!im && $('bang')) $('bang').innerHTML = '<div class="the loi">' + esc(m) + '</div>'; });
+}
+function veBang() {
+  var b = $('bang'); if (!b) return;
+  if (!BANG.length) { b.innerHTML = '<div class="the nho">Chưa có bài nào đang mở trên lớp hôm nay. Chọn lớp, chọn bài rồi bấm «Mở cho lớp ngay».</div>'; return; }
+  var toan = document.fullscreenElement ? document.fullscreenElement.id : '';
+  if (toan) {   // đang chiếu toàn màn hình: chỉ đổi số liệu trong thẻ đang chiếu để không bị thoát chế độ
+    BANG.forEach(function (v) { if ('bv_' + v.ma === toan) document.fullscreenElement.innerHTML = theBang(v, true); });
+    return;
+  }
+  b.innerHTML = BANG.map(function (v) { return '<div class="the bangvao" id="bv_' + esc(v.ma) + '">' + theBang(v) + '</div>'; }).join('');
+}
+function theBang(v) {
+  var p = v.tong ? Math.round(100 * v.xong / v.tong) : 0, khoiLop = /^K/.test(v.lop);
+  return '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between"><div><h3>' + esc(v.ten) + '</h3><div class="nho">' + esc(v.loai) + ' · ' + (khoiLop ? 'cả ' + esc(v.lop.replace('K', 'khối ')) : 'lớp ' + esc(v.lop)) + ' · mở lúc ' + esc(v.giao) + '</div></div>' +
+    '<div class="nutbang" style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="toanMan(\'bv_' + esc(v.ma) + '\')">🖥️ Chiếu toàn màn hình</button><button onclick="dongLop(\'' + esc(v.ma) + '\')">Đóng bài</button></div></div>' +
+    '<div class="lonso">' + v.xong + '<span style="font-size:.5em;color:var(--mo)">/' + v.tong + ' em đã xong (' + p + '%)</span></div><div class="thanh lon"><i style="width:' + p + '%"></i></div>' +
+    '<div class="luoiem">' + v.em.map(function (e) { var ten = khoiLop ? e[0] : e[0].replace(/^.*-/, ''); return '<div class="em' + (e[1] ? ' xong' : '') + '" title="' + esc(e[0]) + '">' + (e[1] ? '✓ ' : '') + esc(ten) + '</div>'; }).join('') + '</div>' +
+    '<div class="nho nutbang" style="margin-top:8px">Tự cập nhật mỗi 10 giây. Bài Khám phá tính «xong» khi em học từ 80%; đề tính «xong» khi em nộp bài.</div>';
+}
+function toanMan(id) { var e = $(id); if (e && e.requestFullscreen) e.requestFullscreen(); else alert('Trình duyệt này chưa cho chiếu toàn màn hình. Thầy cô bấm F11 nhé.'); }
+function dongLop(ma) { if (!confirm('Đóng bài này cho học sinh trên lớp?')) return; goi('gvMonDongNV', [VE, ma, true], function () { NV = null; taiBang(false); }); }
 
 /* ---------- Giao nhiệm vụ về nhà ---------- */
 function homNay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
