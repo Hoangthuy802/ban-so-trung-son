@@ -417,6 +417,7 @@ body.tg .tien{display:none}
           <button class="phan" id="nutOnTap"><span class="bt">🎯</span><b>Ôn tập kiến thức cũ</b><small>Theo chủ đề, định kỳ</small></button>
           <button class="phan" id="nutKiemTra"><span class="bt">📝</span><b>Kiểm tra</b><small>Thường xuyên, định kỳ</small></button>
           <button class="phan" id="nutNV"><span class="bt">📌</span><b>Nhiệm vụ về nhà</b><small>Thầy cô giao cho lớp em</small></button>
+          <button class="phan" id="nutTH" style="display:none"><span class="bt">🛠️</span><b>Thực hành</b><small>Phần mềm học Tin</small></button>
         </div>
         <div class="loi-bao" id="loiVao"></div>
         <div id="dsBTL"></div>
@@ -1231,7 +1232,7 @@ var LINK_HS = 'https://hoangthuy802.github.io/ban-so-trung-son/';
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (typeof google !== 'undefined' && google.script)) return;
   var DS = ['hsVaoPhong', 'hsLuuTam', 'hsBaoRoiTab', 'hsKiemCau', 'hsGoiY', 'hsNopTep', 'hsNop', 'hsXemLai', 'hsDanhSachDe', 'hsCamXuc',
-    'phXemCon', 'phGuiPhanHoi', 'btlDanhSach', 'btlMoBai', 'btlGhiTienDo', 'btlCamXuc', 'btlBaiTiep'];
+    'phXemCon', 'phGuiPhanHoi', 'btlDanhSach', 'btlMoBai', 'btlGhiTienDo', 'btlCamXuc', 'btlBaiTiep', 'hsPhanMem'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -1452,6 +1453,7 @@ var MAY_THU = (function () {
     hsCamXuc: function () { return { ok: true }; },
     gvCamXuc: function () { return { vui: 9, thuong: 4, chua: 1 }; },
     gvTatCaBai: function () { return [{ ma: 'TOAN7-B1', khoi: 7, ten: 'Bài 1 (bản thử)', mon: 'TOAN', tenMon: 'Toán', tt: 'Mở' }, { ma: 'TOAN7-B2', khoi: 7, ten: 'Bài 2 (bản thử)', mon: 'TOAN', tenMon: 'Toán', tt: 'Mở' }, { ma: 'ANH6-B1', khoi: 6, ten: 'Present simple (bản thử)', mon: 'ANH', tenMon: 'Tiếng Anh', tt: 'Mở' }]; },
+    hsPhanMem: function () { return { maHS: 'x', khoi: 7, ds: [{ ten: 'Vẽ tranh (bản thử)', bt: '🖌️', url: 'https://jspaint.app', mota: 'Vẽ, tô màu.', huongDan: 'Bấm Tệp → Lưu.', canTK: false, thuTu: 1 }] }; },
     pcHtml: function () { return '<p style="font:15px sans-serif;padding:16px">Bản thử: trang phân công hiện trên Google.</p>'; },
     gvXemBai: function (ma) { return '<!doctype html><meta charset="utf-8"><h2 style="font-family:sans-serif">Bản xem thử: bài ' + ma + ' (trên app thật hiện trọn bài)</h2>'; },
     gvKhamPha: function (lop) {   // bản xem thử: dữ liệu giả
@@ -2558,22 +2560,25 @@ function veChonMon() {
 }
 function datMon(m) {
   MON = m; try { sessionStorage.setItem('tinlab-mon', m); } catch (e) { }
+  capNhatNutTH();
   veChonMon();
   $('loiVao').style.display = 'none';
   if (PHAN_DANG && $('oMaHS').value.trim() && $('oPIN').value.trim()) hienPhan(PHAN_DANG);
-  else { $('dsBTL').innerHTML = ''; ['nutBTL', 'nutOnTap', 'nutKiemTra', 'nutNV'].forEach(function (id) { $(id).classList.remove('chon'); }); }
+  else { $('dsBTL').innerHTML = ''; ['nutBTL', 'nutOnTap', 'nutKiemTra', 'nutNV', 'nutTH'].forEach(function (id) { $(id).classList.remove('chon'); }); }
 }
+function capNhatNutTH() { var n = $('nutTH'); if (n) n.style.display = MON === 'TIN' ? '' : 'none'; if (MON !== 'TIN' && PHAN_DANG === 'th') PHAN_DANG = 'btl'; }
 function thieuKhoi(k) { return k.khoiToiThieu && k.khoi < k.khoiToiThieu; }
 function maySaiBan(k) { return (k.mon || 'TIN') !== MON; }
 veChonMon();
 function hienPhan(phan) {
   PHAN_DANG = phan;
   var ma = $('oMaHS').value.trim(), pin = $('oPIN').value.trim(), o = $('dsBTL');
-  var idNut = { btl: 'nutBTL', onTap: 'nutOnTap', kiemTra: 'nutKiemTra', nv: 'nutNV' }[phan];
-  ['nutBTL', 'nutOnTap', 'nutKiemTra', 'nutNV'].forEach(function (id) { $(id).classList.toggle('chon', id === idNut); });
+  var idNut = { btl: 'nutBTL', onTap: 'nutOnTap', kiemTra: 'nutKiemTra', nv: 'nutNV', th: 'nutTH' }[phan];
+  ['nutBTL', 'nutOnTap', 'nutKiemTra', 'nutNV', 'nutTH'].forEach(function (id) { $(id).classList.toggle('chon', id === idNut); });
   $('loiVao').style.display = 'none'; o.className = 'ds-bai';
   if (!ma || !pin) { o.innerHTML = ''; baoLoi('loiVao', 'Em nhập mã học sinh và mã PIN trên phiếu cô phát rồi chọn lại nhé.'); return; }
   if (phan === 'nv') { hienNhiemVu(ma, pin, o); return; }
+  if (phan === 'th') { hienThucHanh(ma, pin, o); return; }
   o.innerHTML = '<p class="mo">⏳ Đang tìm bài của khối em…</p>';
   if (phan === 'btl') {
     goi('btlDanhSach', ma, pin, MON).then(function (k) {
@@ -2627,6 +2632,22 @@ $('nutBTL').onclick = function () { hienPhan('btl'); };
 $('nutOnTap').onclick = function () { hienPhan('onTap'); };
 $('nutKiemTra').onclick = function () { hienPhan('kiemTra'); };
 $('nutNV').onclick = function () { hienPhan('nv'); };
+$('nutTH').onclick = function () { hienPhan('th'); };
+capNhatNutTH();
+/* 🛠️ Thực hành: các phần mềm / trang web để em thực hành môn Tin học (thầy cô thêm, sửa, ẩn ở trang «Phần mềm thực hành») */
+function hienThucHanh(ma, pin, o) {
+  o.innerHTML = '<p class="mo">⏳ Đang tìm phần mềm thực hành…</p>';
+  goi('hsPhanMem', ma, pin).then(function (k) {
+    o.innerHTML = '<h3 style="margin:14px 0 6px">🛠️ Phần mềm thực hành — khối ' + an(k.khoi) + '</h3><p class="mo">Bấm vào phần mềm để mở ở tab mới. Các trang này là của bên ngoài: em chỉ dùng khi thầy cô cho phép, <b>không</b> nhập họ tên, số điện thoại hay mật khẩu thật.</p>';
+    if (!k.ds.length) { o.insertAdjacentHTML('beforeend', '<p class="mo">Khối em chưa có phần mềm thực hành nào. Em quay lại sau nhé.</p>'); return; }
+    k.ds.forEach(function (p) {
+      if (!/^https:\/\//.test(p.url)) return;
+      var a = document.createElement('a'); a.className = 'nv-the'; a.href = p.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.cssText = 'display:block;text-decoration:none;color:inherit';
+      a.innerHTML = '<b>' + an(p.bt) + ' ' + an(p.ten) + '</b> <small>' + (p.canTK ? '· cần tài khoản' : '· không cần tài khoản') + '</small><div class="nv-nd">' + an(p.mota) + '</div>' + (p.huongDan ? '<small>💡 ' + an(p.huongDan) + '</small>' : '') + '<div style="margin-top:6px"><span class="nut phu2">▶ Mở phần mềm</span></div>';
+      o.appendChild(a);
+    });
+  }).catch(function (e) { o.innerHTML = ''; baoLoi('loiVao', chuLoi(e)); });
+}
 /* 📌 Nhiệm vụ về nhà: thầy cô bộ môn giao theo lớp. Gắn đề → mở đề; gắn bài Khám phá → mở phần Khám phá; nhiệm vụ tự do → em bấm «đã làm xong». */
 function hienNhiemVu(ma, pin, o) {
   o.innerHTML = '<p class="mo">⏳ Đang tìm nhiệm vụ của lớp em…</p>';
