@@ -102,6 +102,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
 </div>
 
 <main id="chinh" style="display:none">
+  <div class="khoi" id="chonMon"></div>
   <div class="tab" id="cacTab"></div>
   <div class="khoi" id="chonKhoi"></div>
   <div id="vung"></div>
@@ -112,7 +113,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
 (function () {
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (window.google && google.script)) return;
-  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai', 'gvMonOnTapBai', 'gvMonGiaoOnTap', 'gvMonTaoDe', 'gvMonDeCuaToi', 'gvMonDongDe', 'gvMonXoaDe'];
+  var DS = ['gvMonDangNhap', 'gvMonThoat', 'gvMonTienDo', 'gvMonNoiDung', 'gvMonGopY', 'gvMonGopYDaGui', 'gvMonLop', 'gvMonGiaoBai', 'gvMonNhiemVu', 'gvMonDongNV', 'gvMonDoiMatKhau', 'gvMonDanhMuc', 'gvMonMoLop', 'gvMonBangLop', 'gvMonMoBai', 'gvMonOnTapBai', 'gvMonGiaoOnTap', 'gvMonTaoDe', 'gvMonDeCuaToi', 'gvMonDongDe', 'gvMonXoaDe', 'gvMonChonMon'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -129,7 +130,7 @@ select { font:inherit; width:100%; padding:8px; border:1px solid var(--vien); bo
   window.google = { script: { run: tao(null, null) } };
 })();
 var G = (window.google && google.script && google.script.run) || null;
-var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '', KHOIOK = null, ONLOP = '', ONTAP = null;
+var VE = '', MON = '', TENMON = '', TAB = 'lop', KHOI = 6, TD = null, ND = {}, DG = null, NV = null, LOP = null, DM = null, BANG = null, HEN = 0, LOPCHON = '', KHOIOK = null, ONLOP = '', ONTAP = null, MONS = null, TENGV = '', TKGV = '', LOPDAY = null;
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -149,13 +150,13 @@ function vao() {
     KHOIOK = r.lop ? r.lop.map(function (l) { return Number((String(l).match(/\d/) || [0])[0]); }).filter(function (k, i, a) { return k && a.indexOf(k) === i; }).sort() : null; if (KHOIOK && KHOIOK.length) KHOI = KHOIOK[0];
     VE = r.ve; MON = r.mon; TENMON = r.tenMon; TAB = 'lop'; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null;
     $('dangNhap').style.display = 'none'; $('chinh').style.display = ''; $('dau').style.display = '';
-    $('tieuDe').textContent = '👩‍🏫 ' + (r.ten || 'Giáo viên') + ' · ' + TENMON + (r.lop ? ' · lớp ' + (r.lop.join(', ') || '(chưa có lớp)') : '') + ' · ' + r.tk;
+    MONS = r.mons && r.mons.length > 1 ? r.mons : null; TENGV = r.ten; TKGV = r.tk; LOPDAY = r.lop; datTieuDe();
     ve();
   }, function (m) { $('nutVao').disabled = false; $('loiDN').textContent = m; });
 }
 function thoat(thongBao) {
   if (VE) { try { G.gvMonThoat(VE); } catch (e) { /* bỏ qua */ } }
-  VE = ''; TD = null; ND = {}; DG = null; DM = null; BANG = null; dungHen(); dongMK();
+  VE = ''; MONS = null; TD = null; ND = {}; DG = null; DM = null; BANG = null; dungHen(); dongMK();
   $('chinh').style.display = 'none'; $('dau').style.display = 'none'; $('dangNhap').style.display = '';
   $('loiDN').textContent = typeof thongBao === 'string' ? thongBao : '';
 }
@@ -171,6 +172,7 @@ function doiMK() {
 function lamMoi() { ONTAP = null; TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ve(); }
 
 function ve() {
+  veChonMon();
   var t = [['lop', '🏫 Mở bài trên lớp'], ['td', '📈 Tiến độ học tập'], ['nv', '📌 Giao nhiệm vụ về nhà'], ['de', '✍️ Tạo đề của tôi'], ['nd', '🔎 Kiểm tra kiến thức'], ['gy', '📝 Góp ý đã gửi']];
   $('cacTab').innerHTML = t.map(function (x) { return '<button class="' + (TAB === x[0] ? 'bat' : '') + '" onclick="doiTab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('');
   $('chonKhoi').style.display = TAB === 'gy' || TAB === 'nv' || TAB === 'lop' || TAB === 'de' ? 'none' : '';
@@ -182,6 +184,28 @@ function doiTab(t) { TAB = t; ve(); }
 function doiKhoi(k) { KHOI = k; ve(); }
 function cho(t) { $('vung').innerHTML = '<div class="the nho">' + (t || 'Đang tải…') + '</div>'; }
 function loiVung(m) { $('vung').innerHTML = '<div class="the loi">' + esc(m) + '</div>'; }
+
+
+/* ---------- thầy cô dạy nhiều môn: chuyển môn ---------- */
+function datTieuDe() {
+  $('tieuDe').textContent = '👩‍🏫 ' + (TENGV || 'Giáo viên') + ' · ' + TENMON + (LOPDAY ? ' · lớp ' + (LOPDAY.join(', ') || '(chưa có lớp)') : '') + ' · ' + TKGV;
+}
+function khoiTu(lop) { return lop ? lop.map(function (l) { return Number((String(l).match(/\d/) || [0])[0]); }).filter(function (k, i, a) { return k && a.indexOf(k) === i; }).sort() : null; }
+function veChonMon() {
+  var o = $('chonMon'); if (!o) return;
+  if (!MONS) { o.style.display = 'none'; o.innerHTML = ''; return; }
+  o.style.display = '';
+  o.innerHTML = '<span class="nho">Môn đang làm việc:</span>' + MONS.map(function (m) { return '<button class="' + (m.mon === MON ? 'bat' : '') + '" onclick="doiMon(\'' + esc(m.mon) + '\')">' + esc(m.tenMon) + '</button>'; }).join('');
+}
+function doiMon(m) {
+  if (m === MON) return;
+  dungHen();
+  goi('gvMonChonMon', [VE, m], function (r) {
+    MON = r.mon; TENMON = r.tenMon; LOPDAY = r.lop; KHOIOK = khoiTu(r.lop); KHOI = KHOIOK && KHOIOK.length ? KHOIOK[0] : 6;
+    TD = null; ND = {}; DG = null; NV = null; LOP = null; DM = null; BANG = null; ONTAP = null; ONLOP = ''; LOPCHON = '';
+    datTieuDe(); ve();
+  });
+}
 
 /* ---------- Tiến độ ---------- */
 function veTienDo() {
