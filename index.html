@@ -577,6 +577,12 @@ body.tg .tien{display:none}
       <button data-t="gian-lan">🛡️ Nhật ký làm bài</button>
       <button data-t="tin-ph">👪 Phụ huynh</button>
       <button data-t="kham-pha">🧭 Khám phá</button>
+      <button data-t="gvbm">👩‍🏫 Tài khoản GV bộ môn</button>
+    </div>
+    <div id="gv-gvbm" class="gvp" style="display:none">
+      <div class="the"><h3 style="margin:0 0 4px">👩‍🏫 Phân công giáo viên bộ môn và tạo tài khoản</h3>
+        <p class="phu" style="margin:0 0 8px">Ghi tên từng thầy cô, môn dạy, các lớp được phân công rồi bấm «Lưu và tạo tài khoản». Thầy cô chỉ thấy học sinh, bài, đề của đúng lớp và môn mình.</p>
+        <iframe id="khungPC" title="Phân công giáo viên bộ môn" style="width:100%;height:620px;border:0;background:#fff;border-radius:10px"></iframe></div>
     </div>
     <div id="gv-tien-trinh" class="gvp">
       <div class="kpi kpi5" id="kpiTT"></div>
@@ -609,6 +615,8 @@ body.tg .tien{display:none}
       <div class="the"><h3 style="margin:0 0 8px">🛡️ Nhật ký (mới nhất ở trên)</h3><div id="dsNhatKy"></div></div>
     </div>
     <div id="gv-kham-pha" class="gvp" style="display:none">
+      <div class="the" style="margin-bottom:12px"><b>📺 Chiếu bài trên lớp (mọi môn, mọi khối)</b> <span class="phu">Mở trọn bài trên máy cô nối tivi; cả lớp trả lời bằng cử chỉ trước camera, không cần máy riêng, không ghi tiến độ.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="chonMonChieu" title="Môn" style="min-width:150px"></select><select id="chonKhoiChieu" title="Khối" style="min-width:110px"></select><select id="chonChieu" style="flex:1;min-width:260px"></select><button class="nut" id="nutChieuTat">📺 Chiếu bài này</button></div></div>
       <div class="the" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <b>🧭 Tiến độ Khám phá bài mới</b>
         <select id="chonLopKP" style="max-width:200px;padding:8px 12px;font-size:14px"></select>
@@ -1223,7 +1231,7 @@ var LINK_HS = 'https://hoangthuy802.github.io/ban-so-trung-son/';
   var API = 'https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
   if (!/^https:/.test(API) || (typeof google !== 'undefined' && google.script)) return;
   var DS = ['hsVaoPhong', 'hsLuuTam', 'hsBaoRoiTab', 'hsKiemCau', 'hsGoiY', 'hsNopTep', 'hsNop', 'hsXemLai', 'hsDanhSachDe', 'hsCamXuc',
-    'phXemCon', 'phGuiPhanHoi', 'btlDanhSach', 'btlMoBai', 'btlGhiTienDo', 'btlCamXuc'];
+    'phXemCon', 'phGuiPhanHoi', 'btlDanhSach', 'btlMoBai', 'btlGhiTienDo', 'btlCamXuc', 'btlBaiTiep'];
   function tao(ok, hong) {
     var r = { withSuccessHandler: function (f) { return tao(f, hong); }, withFailureHandler: function (f) { return tao(ok, f); } };
     DS.forEach(function (ten) {
@@ -1443,6 +1451,8 @@ var MAY_THU = (function () {
     gvNhatKy: function () { return nhatKy; },
     hsCamXuc: function () { return { ok: true }; },
     gvCamXuc: function () { return { vui: 9, thuong: 4, chua: 1 }; },
+    gvTatCaBai: function () { return [{ ma: 'TOAN7-B1', khoi: 7, ten: 'Bài 1 (bản thử)', mon: 'TOAN', tenMon: 'Toán', tt: 'Mở' }, { ma: 'TOAN7-B2', khoi: 7, ten: 'Bài 2 (bản thử)', mon: 'TOAN', tenMon: 'Toán', tt: 'Mở' }, { ma: 'ANH6-B1', khoi: 6, ten: 'Present simple (bản thử)', mon: 'ANH', tenMon: 'Tiếng Anh', tt: 'Mở' }]; },
+    pcHtml: function () { return '<p style="font:15px sans-serif;padding:16px">Bản thử: trang phân công hiện trên Google.</p>'; },
     gvXemBai: function (ma) { return '<!doctype html><meta charset="utf-8"><h2 style="font-family:sans-serif">Bản xem thử: bài ' + ma + ' (trên app thật hiện trọn bài)</h2>'; },
     gvKhamPha: function (lop) {   // bản xem thử: dữ liệu giả
       var dsLop = ['7A1', '9A1']; lop = dsLop.indexOf(lop) >= 0 ? lop : dsLop[0];
@@ -1869,8 +1879,55 @@ function moTab(t) {
   if (t === 'tin-ph' && !GV.tin) taiTinPH();
   if (t === 'tin-ph') taiPhanHoiPH();
   if (t === 'tong-quan' && GV.tq) veBieuDiem();
-  if (t === 'kham-pha') taiKhamPha();
+  if (t === 'kham-pha') { taiKhamPha(); taiDsChieu(); }
+  if (t === 'gvbm') taiPC();
 }
+function taiDsChieu() {
+  if (GV.dsChieu) return;
+  goi('gvTatCaBai').then(function (ds) {
+    GV.dsChieu = ds;
+    var mon = [], thay = {};
+    ds.forEach(function (b) { if (!thay[b.mon]) { thay[b.mon] = 1; mon.push([b.mon, b.tenMon]); } });
+    $('chonMonChieu').innerHTML = mon.length ? mon.map(function (m) { return '<option value="' + an(m[0]) + '">' + an(m[1]) + '</option>'; }).join('') : '<option value="">(chưa có môn)</option>';
+    locKhoiChieu();
+  }).catch(function (e) { $('chonChieu').innerHTML = '<option value="">⚠️ ' + an(e.message || e) + '</option>'; });
+}
+/* chọn môn → liệt kê các khối có bài; chọn khối → liệt kê các bài của môn đó, đúng thứ tự bài */
+function locKhoiChieu() {
+  var ds = GV.dsChieu || [], m = $('chonMonChieu').value, kh = [];
+  ds.forEach(function (b) { if (b.mon === m && kh.indexOf(b.khoi) < 0) kh.push(b.khoi); });
+  kh.sort(function (x, y) { return x - y; });
+  var cu = $('chonKhoiChieu').value;
+  $('chonKhoiChieu').innerHTML = kh.length ? kh.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('') : '<option value="">(chưa có khối)</option>';
+  if (cu && kh.indexOf(Number(cu)) >= 0) $('chonKhoiChieu').value = cu;
+  locBaiChieu();
+}
+function locBaiChieu() {
+  var ds = GV.dsChieu || [], m = $('chonMonChieu').value, k = Number($('chonKhoiChieu').value);
+  var xs = ds.filter(function (b) { return b.mon === m && b.khoi === k; });
+  $('chonChieu').innerHTML = xs.length ? xs.map(function (b) { return '<option value="' + an(b.ma) + '">' + an(b.ten) + ' (' + an(b.ma) + ')' + (b.tt === 'Mở' ? '' : ' — ' + an(b.tt || 'nháp')) + '</option>'; }).join('') : '<option value="">(chưa có bài Khám phá)</option>';
+}
+$('chonMonChieu').onchange = locKhoiChieu; $('chonKhoiChieu').onchange = locBaiChieu;
+$('nutChieuTat').onclick = function () { var v = $('chonChieu').value; if (v) chieuBaiChu(v); };
+/* 👩‍🏫 Phân công + tạo tài khoản GV bộ môn (nhúng trang phân công của máy chủ) */
+function taiPC() {
+  if (GV.pcDa) return;
+  goi('pcHtml').then(function (h) { $('khungPC').srcdoc = h; GV.pcDa = 1; }).catch(function (e) { $('khungPC').srcdoc = '<p style="font:15px sans-serif;padding:16px;color:#c0392b">⚠️ ' + an(e.message || e) + '</p>'; });
+}
+/* 📺 Chiếu bài Khám phá trên máy cô nối tivi: HS trả lời bằng cử chỉ trước camera, không ghi tiến độ */
+function chieuBaiChu(ma) {
+  $('ghiKP').textContent = '⏳ Đang mở bài ' + ma + '…';
+  goi('gvXemBai', ma).then(function (h) {
+    $('ghiKP').textContent = '';
+    var o = document.createElement('div'); o.id = 'lopChieuChu'; o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000';
+    var f = document.createElement('iframe'); f.title = 'Chiếu bài ' + ma; f.allow = 'camera; microphone; autoplay; fullscreen'; f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff'; f.srcdoc = h;
+    var n = document.createElement('div'); n.style.cssText = 'position:absolute;top:6px;right:8px;z-index:2;display:flex;gap:6px';
+    var b1 = document.createElement('button'); b1.className = 'nut phu2'; b1.textContent = '⛶ Toàn màn hình'; b1.onclick = function () { if (o.requestFullscreen) o.requestFullscreen(); };
+    var b2 = document.createElement('button'); b2.className = 'nut phu2'; b2.textContent = '✕ Thoát chiếu'; b2.onclick = function () { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); o.remove(); };
+    n.appendChild(b1); n.appendChild(b2); o.appendChild(f); o.appendChild(n); document.body.appendChild(o);
+  }).catch(function (er) { $('ghiKP').textContent = '⚠️ ' + (er.message || er); });
+}
+document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-chieu]'); if (b) chieuBaiChu(b.dataset.chieu); });
 /* 🧭 Khám phá: cô chọn lớp → bảng mã HS × bài (đã mở chưa, mấy lượt, lần cuối) */
 function taiKhamPha() {
   var lop = $('chonLopKP').value || GV.lopKP || '';
@@ -1904,7 +1961,7 @@ function veKhamPha() {
   $('baiKP').innerHTML = nb ? r.bai.map(function (b, i) {
     var co = r.hs.filter(function (h) { return h.mo[i]; }), n = co.length, pt = si ? Math.round(n * 100 / si) : 0;
     var tb = n ? Math.round(co.reduce(function (s, h) { return s + (h.mo[i].pt || 0); }, 0) / n) : 0;
-    return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>📘 ' + an(b.ten) + ' <span class="phu">(' + an(b.ma) + ')</span> <button class="nut phu2 nho" data-xem="' + an(b.ma) + '">👁 Xem bài</button></span><b>' + n + '/' + si + ' em' + (n ? ' · học trung bình ' + tb + '%' : '') + '</b></div>' +
+    return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>📘 ' + an(b.ten) + ' <span class="phu">(' + an(b.ma) + ')</span> <button class="nut phu2 nho" data-xem="' + an(b.ma) + '">👁 Xem bài</button> <button class="nut nho" data-chieu="' + an(b.ma) + '">📺 Chiếu bài trên lớp</button></span><b>' + n + '/' + si + ' em' + (n ? ' · học trung bình ' + tb + '%' : '') + '</b></div>' +
       '<div style="height:10px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:4px"><div style="height:10px;border-radius:6px;width:' + pt + '%;background:linear-gradient(90deg,#22d3ee,#4ade80)"></div></div></div>';
   }).join('') : '<p class="mo">Khối này chưa có bài Khám phá nào đang mở.</p>';
   var loc = $('locKP').value;
@@ -2448,12 +2505,15 @@ function moTrangBai(h, ctx, ttCu) {
   f.srcdoc = h;
   document.body.innerHTML = ''; document.body.style.overflow = 'hidden'; document.body.appendChild(f);
   if (ctx) {
-    ctx.gio = Date.now(); nhoBai(ctx);
-    setInterval(function () {   // ghi lại vị trí học mỗi 2 giây để lỡ tải lại thì học tiếp được
+    ctx.gio = Date.now(); nhoBai(ctx); window.__baiCtx = ctx;
+    if (window.__baiHen) clearInterval(window.__baiHen);
+    window.__baiHen = setInterval(function () {   // ghi lại vị trí học mỗi 2 giây để lỡ tải lại thì học tiếp được
       try { var w = f.contentWindow; if (w && typeof w.chupTT === 'function') { ctx.tt = w.chupTT(); ctx.gio = Date.now(); nhoBai(ctx); } } catch (e) { }
     }, 2000);
   }
 }
+/* ➡ Bài tiếp theo: trang bài gọi hàm này để thay bài ngay trong khung, em không phải quay lại nhập mã */
+window.moBaiTiepTheo = function (h, maBai) { var c = window.__baiCtx || {}; moTrangBai(h, { ma: c.ma, pin: c.pin, bai: maBai }); };
 /* Trang vừa tải lại giữa lúc đang học → mở lại đúng bài, đúng chỗ. Không tự bật camera (tránh tải lại liên tục). */
 (function () {
   var v = layBaiNho(); if (!v) return;
@@ -2578,7 +2638,8 @@ function hienNhiemVu(ma, pin, o) {
     ds.forEach(function (v) {
       var the = document.createElement('div'); the.className = 'nv-the' + (v.xong ? ' xong' : v.hetHan ? ' het' : '');
       var han = v.han ? (v.hetHan && !v.xong ? '⚠️ Đã quá hạn (' + an(v.han) + ')' : '⏰ Hạn: ' + an(v.han)) : '';
-      the.innerHTML = '<b>' + (v.xong ? '✅ ' : '📌 ') + an(v.tieuDe) + '</b> <small>· ' + an(v.tenMon) + ' · ' + han + '</small>' +
+      if (v.kieu === 'Trên lớp' && !v.xong) the.style.cssText = 'border:2px solid #1a56b0;background:#eef3fc';
+      the.innerHTML = '<b>' + (v.xong ? '✅ ' : v.kieu === 'Trên lớp' ? '🏫 ' : '📌 ') + an(v.tieuDe) + '</b> <small>· ' + an(v.tenMon) + (v.kieu === 'Trên lớp' ? ' · làm ngay trong tiết học' : ' · ' + han) + '</small>' +
         '<div class="nv-nd">' + an(v.noiDung) + '</div>' + (v.nhanGan ? '<small>Gắn với: ' + an(v.nhanGan) + '</small>' : '');
       var hang = document.createElement('div'); hang.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
       if (v.loaiGan === 'de' && !v.xong) {
