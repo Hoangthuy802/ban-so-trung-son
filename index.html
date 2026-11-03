@@ -407,6 +407,11 @@ body.tg .tien{display:none}
         <input type="text" id="oMaHS" placeholder="VD: 7A1-HS05" autocomplete="off">
         <label for="oPIN">Mã PIN</label>
         <input type="password" id="oPIN" placeholder="4 số" inputmode="numeric" maxlength="6" autocomplete="off">
+        <div id="gkBox" style="display:none;margin:10px 0;padding:12px;border:2px dashed #1d6fb8;border-radius:14px;background:rgba(29,111,184,.08)">
+          <b>🎓 Ban Giám khảo dùng thử</b>
+          <p class="mo" style="margin:4px 0 8px">Không cần mã PIN. Chọn khối lớp muốn xem, rồi chọn <b>Khám phá / Ôn tập / Kiểm tra</b> bên dưới. Có thể đổi khối bất cứ lúc nào. Bài làm thử được ghi riêng, không lẫn vào số liệu của lớp.</p>
+          <div id="gkKhoi" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
         <div class="chon-mon" id="chonMon">
           <div class="cm-nhan">📚 Em chọn môn học</div>
           <div class="cm-hang" id="monChinh"></div>
@@ -1545,6 +1550,7 @@ var LB = { phien: null, de: null, cau: [], tl: {}, so: 0, han: 0, lech: 0, dangN
 function vaoPhong() {
   var maDe = $('oMaDe').value.trim(), maHS = $('oMaHS').value.trim(), pin = $('oPIN').value.trim();
   $('loiVao').style.display = 'none';
+  if (gkChuaChonKhoi(maHS)) { baoLoi('loiVao', 'Giám khảo chọn khối lớp ở khung «Ban Giám khảo dùng thử» phía trên nhé.'); return; }
   if (!maDe || !maHS) { baoLoi('loiVao', !maHS ? 'Em nhập mã học sinh và mã PIN nhé.' : 'Em chọn bài ở mục 🎯 Ôn tập hoặc 📝 Kiểm tra nhé.'); return; }
   $('nutVao').disabled = true; var gocNut = $('nutVao').textContent; $('nutVao').textContent = '⏳ Đang vào phòng…';
   setTimeout(function () { goi('hsVaoPhong', maDe, maHS, pin, MA_MAY).then(function (r) {
@@ -2251,6 +2257,8 @@ function moPhuHuynh(ma, pin) {
 function phXem() {
   var ma = $('oPHMa').value.trim(), pin = $('oPHPin').value.trim();
   $('loiPH').style.display = 'none';
+  if (GK_BARE.test(ma)) ma = $('oPHMa').value = gkMa(GK_KHOI || 7);   // giám khảo gõ «BGK2026» ở trang phụ huynh: tự lấy khối đang chọn (mặc định 7)
+  if (GK_MA.test(ma)) pin = 'gk';
   if (!pin) { baoLoi('loiPH', 'Phụ huynh nhập mã PIN của con nhé.'); return; }
   $('nutPHXem').disabled = true;
   goi('phXemCon', ma, pin).then(function (so) { $('nutPHXem').disabled = false; PH.so = so; veSoCon(so); })
@@ -2452,7 +2460,7 @@ $('nutSau').onclick = function () { if (LB.so < LB.cau.length - 1) { LB.so++; ve
 $('nutNop').onclick = function () { nopBai(); };
 $('nutKiem').onclick = kiemCau;
 $('nutVeDau').onclick = function () { chuDeLop(false); moMan('dang-nhap'); veThuPH(); };
-$('nutPH').onclick = function () { moPhuHuynh($('oMaHS').value.trim()); };
+$('nutPH').onclick = function () { var m = $('oMaHS').value.trim(); moPhuHuynh(m, GK_MA.test(m) ? 'gk' : ''); };
 /* 3 phần cho HS — chỉ mã HS + PIN, máy chủ trả đúng khối của mã em:
    🧭 Khám phá bài mới (bài tiền lớp) · 🎯 Ôn tập kiến thức cũ (đề Ôn tập) · 📝 Kiểm tra thường xuyên, định kỳ (đề Kiểm tra) */
 function chuLoi(e) { return String(e && e.message ? e.message : e).replace(/^Error:\s*/, ''); }
@@ -2576,6 +2584,7 @@ function hienPhan(phan) {
   var idNut = { btl: 'nutBTL', onTap: 'nutOnTap', kiemTra: 'nutKiemTra', nv: 'nutNV', th: 'nutTH' }[phan];
   ['nutBTL', 'nutOnTap', 'nutKiemTra', 'nutNV', 'nutTH'].forEach(function (id) { $(id).classList.toggle('chon', id === idNut); });
   $('loiVao').style.display = 'none'; o.className = 'ds-bai';
+  if (gkChuaChonKhoi(ma)) { o.innerHTML = ''; baoLoi('loiVao', 'Giám khảo chọn khối lớp ở khung «Ban Giám khảo dùng thử» phía trên nhé.'); return; }
   if (!ma || !pin) { o.innerHTML = ''; baoLoi('loiVao', 'Em nhập mã học sinh và mã PIN trên phiếu cô phát rồi chọn lại nhé.'); return; }
   if (phan === 'nv') { hienNhiemVu(ma, pin, o); return; }
   if (phan === 'th') { hienThucHanh(ma, pin, o); return; }
@@ -2628,6 +2637,30 @@ function hienPhan(phan) {
     });
   }).catch(function (e) { o.innerHTML = ''; baoLoi('loiVao', chuLoi(e)); });
 }
+/* 🎓 MÃ DÙNG THỬ BAN GIÁM KHẢO: gõ «BGK2026» → hiện nút chọn khối 3–9, ẩn ô PIN. Máy chủ nhận mã BGK2026-K<khối>-<đuôi riêng của máy này>. */
+var GK_BARE = /^BGK2026$/i, GK_MA = /^BGK2026-K([3-9])-[A-Z0-9]{3,10}$/i, GK_KHOI = 0;
+function gkDuoi() {
+  var d = ''; try { d = localStorage.getItem('tinlab-gk') || ''; } catch (e) { }
+  if (!/^[A-Z0-9]{3,10}$/.test(d)) { d = ''; for (var i = 0; i < 5; i++) d += 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'.charAt(Math.floor(Math.random() * 31)); try { localStorage.setItem('tinlab-gk', d); } catch (e) { } }
+  return d;
+}
+function gkMa(k) { return 'BGK2026-K' + k + '-' + gkDuoi(); }
+function gkChuaChonKhoi(ma) { return GK_BARE.test(String(ma || '').trim()); }
+function gkCapNhat() {
+  var v = $('oMaHS').value.trim(), g = v.match(GK_MA), laGK = !!g || GK_BARE.test(v), box = $('gkBox');
+  box.style.display = laGK ? 'block' : 'none';
+  $('oPIN').style.display = laGK ? 'none' : ''; var nh = document.querySelector('label[for=oPIN]'); if (nh) nh.style.display = laGK ? 'none' : '';
+  if (!laGK) { GK_KHOI = 0; return; }
+  $('oPIN').value = 'gk'; GK_KHOI = g ? Number(g[1]) : 0;
+  var o = $('gkKhoi'); o.innerHTML = '';
+  for (var k = 3; k <= 9; k++) (function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'nut' + (k === GK_KHOI ? '' : ' phu2'); b.textContent = 'Lớp ' + k;
+    b.onclick = function () { $('oMaHS').value = gkMa(k); gkCapNhat(); if (PHAN_DANG) hienPhan(PHAN_DANG); else hienPhan('btl'); };
+    o.appendChild(b);
+  })(k);
+}
+$('oMaHS').addEventListener('input', gkCapNhat); $('oMaHS').addEventListener('change', gkCapNhat);
+gkCapNhat();
 $('nutBTL').onclick = function () { hienPhan('btl'); };
 $('nutOnTap').onclick = function () { hienPhan('onTap'); };
 $('nutKiemTra').onclick = function () { hienPhan('kiemTra'); };
