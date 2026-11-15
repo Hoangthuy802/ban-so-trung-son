@@ -573,7 +573,8 @@ body.tg .tien{display:none}
       <b style="font-size:18px">👩‍🏫 Bảng giáo viên</b>
       <span id="locDeGV" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select id="locKhoi" title="Chọn khối" style="max-width:120px"></select>
-        <select id="locMon" title="Chọn môn" style="max-width:150px"></select>
+        <select id="locMon" title="Chọn môn" style="max-width:170px"></select>
+        <select id="locPhan" title="Chọn phân môn" style="max-width:150px;display:none"></select>
         <select id="locLoai" title="Chọn loại: Ôn tập hoặc Kiểm tra" style="max-width:200px"></select>
       </span>
       <select id="chonDe" style="max-width:360px"></select>
@@ -1889,32 +1890,48 @@ function khoiDongGV() {
   }).catch(function (e) { $('kpi').innerHTML = '<div class="the">⚠️ ' + an(e.message || e) + '</div>'; });
 }
 /* 🗂️ Chia đề theo KHỐI → MÔN → LOẠI (Ôn tập · Kiểm tra) cho thầy cô dễ tìm; Khám phá có thẻ riêng */
-var THU_TU_MON = ['TIN', 'TOAN', 'ANH', 'LY', 'HOA', 'SINH', 'SU', 'DIA'];
+var THU_TU_MON = ['TIN', 'TOAN', 'ANH', 'KHTN', 'LSDL'];
+var GV_MON_NHOM = { LY: 'KHTN', HOA: 'KHTN', SINH: 'KHTN', SU: 'LSDL', DIA: 'LSDL' };
+var THU_TU_PHAN = ['TIN', 'TOAN', 'ANH', 'LY', 'HOA', 'SINH', 'SU', 'DIA'];
+var NHOM_TEN = { KHTN: 'KHTN (Lí – Hóa – Sinh)', LSDL: 'Lịch sử và Địa lí' };
+var NHOM_PHAN = { KHTN: ['LY', 'HOA', 'SINH'], LSDL: ['SU', 'DIA'] };
+function nhomMon(m) { return GV_MON_NHOM[m] || m; }
+function tenNhom(n) { return NHOM_TEN[n] || MON_TEN[n] || n; }
 function dungLocDe(dm) {
   var ds = GV.dsDe || [], kh = [], mon = [];
-  ds.forEach(function (d) { if (kh.indexOf(d.lop) < 0) kh.push(d.lop); if (mon.indexOf(d._mon) < 0) mon.push(d._mon); });
+  ds.forEach(function (d) { if (kh.indexOf(d.lop) < 0) kh.push(d.lop); var n = nhomMon(d._mon); if (mon.indexOf(n) < 0) mon.push(n); });
   kh.sort(function (x, y) { return x - y; });
   mon.sort(function (x, y) { var i = THU_TU_MON.indexOf(x), j = THU_TU_MON.indexOf(y); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   $('locKhoi').innerHTML = '<option value="">Tất cả khối</option>' + kh.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('');
-  $('locMon').innerHTML = '<option value="">Tất cả môn</option>' + mon.map(function (m) { return '<option value="' + an(m) + '">' + an(MON_TEN[m] || m) + '</option>'; }).join('');
+  $('locMon').innerHTML = '<option value="">Tất cả môn</option>' + mon.map(function (m) { return '<option value="' + an(m) + '">' + an(tenNhom(m)) + '</option>'; }).join('');
   $('locLoai').innerHTML = '<option value="">Ôn tập + Kiểm tra</option><option value="Ôn tập">🎯 Ôn tập</option><option value="Kiểm tra">📝 Kiểm tra</option>';
-  if (dm) { $('locKhoi').value = String(dm.lop); $('locMon').value = dm._mon; $('locLoai').value = dm.cheDo; }
+  if (dm) { $('locKhoi').value = String(dm.lop); $('locMon').value = nhomMon(dm._mon); $('locLoai').value = dm.cheDo; }
+  dungLocPhan(dm && GV_MON_NHOM[dm._mon] ? dm._mon : '');
+}
+/* KHTN → Vật lí · Hóa học · Sinh học; Lịch sử và Địa lí → Lịch sử · Địa lí. Môn khác: ẩn ô phân môn */
+function dungLocPhan(giu) {
+  var n = $('locMon').value, ph = NHOM_PHAN[n];
+  if (!ph) { $('locPhan').style.display = 'none'; $('locPhan').innerHTML = ''; return; }
+  $('locPhan').innerHTML = '<option value="">Cả ' + ph.length + ' phân môn</option>' + ph.map(function (m) { return '<option value="' + m + '">' + an(MON_TEN[m]) + '</option>'; }).join('');
+  $('locPhan').style.display = '';
+  if (giu && ph.indexOf(giu) >= 0) $('locPhan').value = giu;
 }
 function locDe(giu) {
-  var kh = $('locKhoi').value, mo = $('locMon').value, lo = $('locLoai').value, cu = giu || $('chonDe').value;
+  var kh = $('locKhoi').value, mo = $('locMon').value, ph = $('locPhan').value, lo = $('locLoai').value, cu = giu || $('chonDe').value;
   $('chonDe').style.display = '';
-  var xs = (GV.dsDe || []).filter(function (d) { return (!kh || String(d.lop) === kh) && (!mo || d._mon === mo) && (!lo || d.cheDo === lo); });
-  var vt = function (d) { var i = THU_TU_MON.indexOf(d._mon); return [i < 0 ? 99 : i, d.lop, d.cheDo === 'Ôn tập' ? 0 : 1]; };
-  xs = xs.map(function (d, i) { return [vt(d), i, d]; }).sort(function (p, q) { for (var k = 0; k < 3; k++) if (p[0][k] !== q[0][k]) return p[0][k] - q[0][k]; return p[1] - q[1]; }).map(function (z) { return z[2]; });
+  var xs = (GV.dsDe || []).filter(function (d) { return (!kh || String(d.lop) === kh) && (!mo || nhomMon(d._mon) === mo) && (!ph || d._mon === ph) && (!lo || d.cheDo === lo); });
+  var vt = function (d) { var i = THU_TU_MON.indexOf(nhomMon(d._mon)); return [i < 0 ? 99 : i, THU_TU_PHAN.indexOf(d._mon), d.lop, d.cheDo === 'Ôn tập' ? 0 : 1]; };
+  xs = xs.map(function (d, i) { return [vt(d), i, d]; }).sort(function (p, q) { for (var k = 0; k < 4; k++) if (p[0][k] !== q[0][k]) return p[0][k] - q[0][k]; return p[1] - q[1]; }).map(function (z) { return z[2]; });
   var nhom = {}, thu = [];
-  xs.forEach(function (d) { var k = 'Khối ' + d.lop + ' · ' + (MON_TEN[d._mon] || d._mon) + ' · ' + d.cheDo; if (!nhom[k]) { nhom[k] = []; thu.push(k); } nhom[k].push(d); });
+  xs.forEach(function (d) { var n = nhomMon(d._mon), k = 'Khối ' + d.lop + ' · ' + (n === d._mon ? (MON_TEN[n] || n) : (n === 'KHTN' ? 'KHTN' : 'LS & ĐL') + ' – ' + MON_TEN[d._mon]) + ' · ' + d.cheDo; if (!nhom[k]) { nhom[k] = []; thu.push(k); } nhom[k].push(d); });
   $('chonDe').innerHTML = xs.length ? thu.map(function (k) {
     return '<optgroup label="' + an(k) + '">' + nhom[k].map(function (d) { return '<option value="' + an(d.ma) + '">' + an(d.ma + ' — ' + d.ten) + '</option>'; }).join('') + '</optgroup>';
   }).join('') : '<option value="">(không có đề nào khớp bộ lọc)</option>';
   if (cu && xs.some(function (d) { return d.ma === cu; })) $('chonDe').value = cu;
 }
 function doiLocDe() { locDe(); if (document.querySelector('#tabGV button[data-t="kham-pha"].on')) moTab('tien-trinh'); taiGV(); }
-$('locKhoi').onchange = $('locMon').onchange = $('locLoai').onchange = doiLocDe;
+$('locKhoi').onchange = $('locPhan').onchange = $('locLoai').onchange = doiLocDe;
+$('locMon').onchange = function () { dungLocPhan(''); doiLocDe(); };
 function taiGV() {
   GV.de = $('chonDe').value;
   taiTienTrinh();
@@ -1941,7 +1958,10 @@ function taiDsChieu() {
     GV.dsChieu = ds;
     var mon = [], thay = {};
     ds.forEach(function (b) { if (!thay[b.mon]) { thay[b.mon] = 1; mon.push([b.mon, b.tenMon]); } });
-    $('chonMonChieu').innerHTML = mon.length ? mon.map(function (m) { return '<option value="' + an(m[0]) + '">' + an(m[1]) + '</option>'; }).join('') : '<option value="">(chưa có môn)</option>';
+    var opt = function (m) { return '<option value="' + an(m[0]) + '">' + an(m[1]) + '</option>'; }, nh = {}, ra = [];
+    mon.sort(function (x, y) { return THU_TU_PHAN.indexOf(x[0]) - THU_TU_PHAN.indexOf(y[0]); });
+    mon.forEach(function (m) { var n = GV_MON_NHOM[m[0]]; if (n) { if (!nh[n]) { nh[n] = []; ra.push(['g', n]); } nh[n].push(m); } else ra.push(['m', m]); });
+    $('chonMonChieu').innerHTML = mon.length ? ra.map(function (r) { return r[0] === 'm' ? opt(r[1]) : '<optgroup label="' + an(tenNhom(r[1])) + '">' + nh[r[1]].map(opt).join('') + '</optgroup>'; }).join('') : '<option value="">(chưa có môn)</option>';
     locKhoiChieu();
   }).catch(function (e) { $('chonChieu').innerHTML = '<option value="">⚠️ ' + an(e.message || e) + '</option>'; });
 }
