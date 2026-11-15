@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Quét thẻ đáp án · Bản số Trung Sơn</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2457d6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Quét thẻ">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADABAMAAACg8nE0AAAAGFBMVEUkV9b////lSE0vb+31piMvo2sUGCLc5PfSTu9zAAAB2ElEQVR42u2ayXGDQBBFcQbIC3eRgYsIXEUCOhAAF+cfgjUrYqmeHpqWwPx3UnHox1cz0yMVRQEAAAAAAAAAr+Ttsg7t+mzD6vqXUrk+00BWqOurVEB14L02CLtA37/hKouQDEBGKEXfkK9PRRAJQgAqgkgQ6xMRzi0YWkA0AYJjC7AOdrAXqe+m+vNgk4lGCtIzuZSeuhKnCrlAfjCCAAIFQfU70C9egEBf0I8/zS5A8AxBZfv5IBhdgACCcwiOuJK77pYlaJrvHMFXZ+ALPhpDhsDW9xk4A8fWtxl4AhfAR2AIXAAbgSfw9V0EhsDXNxFYghDARUgLQgATgSWI9eOTRBPr3yNIBeau9y8YWhCWAi0YWnBvAgTHELz0MdVYaItbRYjTrxIw9qKRIHsvYuymI0H2bsqYB2NB9jyYTLTZyJwKsidaaibPBNkzOXGqmAmyTxXkuWj7X/oPJ8Wwkquln7AQQPC/BeoLLb1VnFyQHDgQKAvw5zgEEExp2x9NwWdrUBTY+mQGmcAFICPIBL4+FUEkCAGoCCJBrE9EOLdgaAHRBAiOLcA62MFetM1uWmjPg0J7ojFGGnUL4reWE6cK+WvR4mPRM94c13/3HQAAAAAAAABU+AN9BpG998lwYgAAAABJRU5ErkJggg==">
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--ink:#1d2433;--mut:#5b6577;--line:#dfe4ee;--pri:#2457d6;--A:#e5484d;--B:#2f6fed;--C:#f5a623;--D:#2fa36b}
 @media (prefers-color-scheme:dark){:root{--bg:#10141d;--card:#1a2030;--ink:#eef1f8;--mut:#9aa5ba;--line:#2a3247;--pri:#6b94ff}}
@@ -34,6 +40,11 @@ input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-r
 <div class="wrap">
   <h1>📱 Quét thẻ đáp án</h1>
   <div class="nhap">Bản số Trung Sơn · ✅ BẢN NHÁP — cô duyệt trước khi dùng</div>
+
+  <div id="cai" class="the" style="display:none">
+    <div id="caiCh"><b>📲 Cài thành ứng dụng trên điện thoại</b><div class="mut" style="margin:4px 0 10px">Có biểu tượng ngoài màn hình chính, mở như app thường, lần sau vào nhanh hơn.</div><button class="pri to" id="nutCai">Cài ứng dụng</button></div>
+    <div id="caiIos" class="mut" style="display:none"><b>📲 Cài ứng dụng trên iPhone:</b> bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên) ở thanh dưới Safari → chọn <b>Thêm vào MH chính</b>.</div>
+  </div>
 
   <div id="vao" class="the">
     <div class="mut">Cách nhanh nhất: dùng <b>camera thường của điện thoại</b> quét mã vuông trên bài chiếu, trang này tự mở và tự vào phòng. Hoặc gõ <b>mã phòng 6 ký tự</b> hiện trên máy tính:</div>
@@ -198,6 +209,14 @@ $('nutQuetMa').onclick=function(){moQuet('ma');};
 $('nutBat').onclick=function(){moQuet('the');};
 $('xong').onclick=function(){dongQuet();if(P.ma)lam_moi();};
 $('nutRoi').onclick=function(){roi('');};
+/* 📲 Cài ứng dụng (PWA): Android hiện nút Cài; iPhone chỉ cách thêm vào màn hình chính */
+var daCai=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+var ev_cai=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();ev_cai=e;if(!daCai){$('cai').style.display='block';$('caiCh').style.display='block';$('caiIos').style.display='none';}});
+window.addEventListener('appinstalled',function(){$('cai').style.display='none';});
+$('nutCai').onclick=function(){if(!ev_cai)return;ev_cai.prompt();ev_cai.userChoice.then(function(){ev_cai=null;$('cai').style.display='none';});};
+if(!daCai&&/iPad|iPhone|iPod/.test(navigator.userAgent)){$('cai').style.display='block';$('caiCh').style.display='none';$('caiIos').style.display='block';}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
 window.__quetAnh=function(src,w,h,co){return docKhung(src,w,h,co);};
 window.__thu={xuLy:xuLy,gui:gui,P:P,cho:cho};      // dùng cho kiểm thử tự động
 try{var m=new URLSearchParams(location.search).get('p')||sessionStorage.getItem('qt-phong');if(m){$('ma').value=m.toUpperCase();vaoPhong(m);}}catch(e){}
