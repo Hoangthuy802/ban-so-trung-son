@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quét thẻ đáp án · Bản số Trung Sơn</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1d2433;--mut:#5b6577;--line:#dfe4ee;--pri:#2457d6;--A:#e5484d;--B:#2f6fed;--C:#f5a623;--D:#2fa36b}
+@media (prefers-color-scheme:dark){:root{--bg:#10141d;--card:#1a2030;--ink:#eef1f8;--mut:#9aa5ba;--line:#2a3247;--pri:#6b94ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:19px;margin:6px 0 2px}
+.nhap{font-size:12px;color:var(--mut);margin-bottom:14px}
+.the{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+button{font:inherit;border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:700}
+button.to{width:100%;padding:16px;font-size:1.1em}
+input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-radius:12px;text-align:center;font-size:28px;letter-spacing:6px;text-transform:uppercase;background:var(--card);color:var(--ink)}
+.mut{color:var(--mut);font-size:.9em}
+.lon{font-size:2em;font-weight:800}
+.hang{display:flex;gap:10px;margin-top:10px}.hang>*{flex:1}
+#loi{color:#c0392b;min-height:1.4em;margin:6px 0}
+#quet{position:fixed;inset:0;background:#000;z-index:9;display:none}
+#quet video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#quet canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#hud{position:absolute;left:0;right:0;top:0;padding:10px 12px;color:#fff;background:linear-gradient(#000b,#0000);display:flex;gap:10px;align-items:center}
+#hud .to{flex:1;font-weight:700}
+#quet .duoi{position:absolute;left:0;right:0;bottom:0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;background:linear-gradient(#0000,#000b)}
+#quet .duoi button{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📱 Quét thẻ đáp án</h1>
+  <div class="nhap">Bản số Trung Sơn · ✅ BẢN NHÁP — cô duyệt trước khi dùng</div>
+
+  <div id="vao" class="the">
+    <div class="mut">Trên máy tính, bài chiếu hiện <b>mã phòng 6 ký tự</b> cùng một mã vuông. Cô quét mã vuông đó, hoặc gõ mã phòng:</div>
+    <div style="margin:12px 0"><input id="ma" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="K7M2QX"></div>
+    <div class="hang"><button class="pri to" id="nutVao">Vào phòng</button></div>
+    <div class="hang"><button class="to" id="nutQuetMa">📷 Quét mã vuông trên máy tính</button></div>
+    <div id="loi"></div>
+  </div>
+
+  <div id="phong" class="the" style="display:none">
+    <div class="mut">Phòng <b id="pMa"></b> · lớp <b id="pLop"></b> · <span id="pSo"></span> em</div>
+    <div style="margin:8px 0"><div class="mut">Câu đang chiếu trên máy tính</div><div class="lon" id="pCau">—</div></div>
+    <div class="mut" id="pQuet">Chưa quét em nào ở câu này.</div>
+    <div class="hang"><button class="pri to" id="nutBat">📷 Bật camera quét thẻ</button></div>
+    <div class="hang"><button id="nutRoi">Rời phòng</button></div>
+    <p class="mut">Mẹo: đứng cách các em 2–4 m, đưa máy chậm qua từng dãy 8–10 em, mỗi em giơ thẻ ngang ngực khoảng 2 giây. Thẻ nào máy đọc được sẽ hiện khung màu cùng mã HS và chữ A/B/C/D.</p>
+  </div>
+</div>
+
+<div id="quet">
+  <video id="vid" playsinline muted></video>
+  <canvas id="phu"></canvas>
+  <div id="hud"><div class="to" id="hudTxt"></div><button id="nutDen" style="display:none">🔦</button></div>
+  <div class="duoi"><button id="xong" class="pri">Xong</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" integrity="sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx" crossorigin="anonymous"></script>
+<script>
+(function(){
+"use strict";
+var API='https://script.google.com/macros/s/AKfycbyAy_69FQRoCsMLDbLQs2VZQW6MSh4srOZJ1jToiftibo5kFpXQu2Rx69Adw8j54RH6/exec';
+function $(i){return document.getElementById(i);}
+function goi(f,a){
+  return fetch(API,{method:'POST',body:JSON.stringify({f:f,a:a})}).then(function(r){return r.json();})
+    .then(function(k){if(!k.ok)throw new Error(k.loi||'Lỗi');return k.v;});
+}
+function loi(t){$('loi').textContent=t||'';}
+var P={ma:'',cau:'',n:4,soHS:0,quet:0};          // phòng đang vào
+var dangQuet=false,cheDo='the',stream=null,gan={},cho={},daGui={},la={},choGui={},dangGui=false,ghiAm=null,tim=0;
+
+function bip(){try{ghiAm=ghiAm||new (window.AudioContext||window.webkitAudioContext)();var o=ghiAm.createOscillator(),g=ghiAm.createGain();o.frequency.value=880;g.gain.value=.08;o.connect(g);g.connect(ghiAm.destination);o.start();o.stop(ghiAm.currentTime+.09);}catch(e){}}
+
+/* ---------- vào phòng ---------- */
+function vaoPhong(ma){
+  ma=String(ma||'').trim().toUpperCase();
+  if(!/^[A-Z2-9]{6}$/.test(ma)){loi('Mã phòng gồm 6 ký tự (chữ và số).');return;}
+  loi('Đang vào phòng…');
+  goi('quetVao',[ma]).then(function(r){
+    loi('');P.ma=ma;P.cau=r.cau;P.n=r.n;P.soHS=r.soHS;P.quet=r.daQuet;
+    $('pMa').textContent=ma;$('pLop').textContent=r.lop;$('pSo').textContent=r.soHS;
+    $('vao').style.display='none';$('phong').style.display='block';
+    try{sessionStorage.setItem('qt-phong',ma);}catch(e){}
+    veCau();clearInterval(tim);tim=setInterval(lam_moi,2500);
+  }).catch(function(e){loi(String(e.message||e).replace(/^Error:\s*/,''));});
+}
+function veCau(){
+  $('pCau').textContent=P.cau===''?'Chưa có câu chọn đáp án':('Câu '+(Number(P.cau)+1)+' ('+P.n+' đáp án)');
+  $('pQuet').textContent=P.quet?('Đã quét '+P.quet+'/'+P.soHS+' em ở câu này.'):'Chưa quét em nào ở câu này.';
+}
+function datCau(c,n,q){
+  if(c!==P.cau){P.cau=c;daGui={};cho={};la={};choGui={};gan={};}
+  P.n=n;if(q!==undefined)P.quet=q;veCau();
+}
+function lam_moi(){
+  if(dangQuet||!P.ma)return;
+  goi('quetVao',[P.ma]).then(function(r){datCau(r.cau,r.n,r.daQuet);}).catch(function(e){
+    if(/không còn/.test(String(e.message)))roi('Phòng đã đóng hoặc hết hạn. Cô mở lại phòng trên máy tính.');});
+}
+function roi(t){clearInterval(tim);P.ma='';$('phong').style.display='none';$('vao').style.display='block';loi(t||'');try{sessionStorage.removeItem('qt-phong');}catch(e){}}
+
+/* ---------- đọc thẻ (QR xoay 4 hướng = A/B/C/D) ---------- */
+var cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+var lanQuet=0,CO_O=[260,420,640];
+function quetO(data,w,h,ox,oy,out){
+  for(var i=0;i<8;i++){
+    var r=jsQR(data,w,h,{inversionAttempts:'dontInvert'});if(!r)break;
+    var L=r.location,a=L.topLeftCorner,b=L.topRightCorner;
+    var k=Math.round(Math.atan2(b.y-a.y,b.x-a.x)/(Math.PI/2));
+    var chu=k===0?'A':(k===-1?'B':(Math.abs(k)===2?'C':'D'));
+    var xs=[a.x,b.x,L.bottomLeftCorner.x,L.bottomRightCorner.x],ys=[a.y,b.y,L.bottomLeftCorner.y,L.bottomRightCorner.y];
+    var x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
+    out.push({ma:(r.data||'').trim().toUpperCase(),chu:chu,x0:ox+x0,y0:oy+y0,x1:ox+x1,y1:oy+y1});
+    var pw=(x1-x0)*0.15,ph=(y1-y0)*0.15,ax=Math.max(0,Math.floor(x0-pw)),bx=Math.min(w,Math.ceil(x1+pw)),ay=Math.max(0,Math.floor(y0-ph)),by=Math.min(h,Math.ceil(y1+ph));
+    for(var y=ay;y<by;y++){var o=(y*w+ax)*4;for(var x=ax;x<bx;x++){data[o]=data[o+1]=data[o+2]=255;o+=4;}}
+  }
+}
+function docKhung(src,w,h,co){
+  cv.width=w;cv.height=h;cx.drawImage(src,0,0,w,h);
+  var im=cx.getImageData(0,0,w,h),out=[],T=co||CO_O[(lanQuet++)%CO_O.length],step=Math.round(T/2);
+  for(var y0=0;y0<h;y0+=step){for(var x0=0;x0<w;x0+=step){
+    var tw=Math.min(T,w-x0),th=Math.min(T,h-y0);if(tw<60||th<60)continue;
+    var d=new Uint8ClampedArray(tw*th*4);
+    for(var y=0;y<th;y++)d.set(im.data.subarray(((y0+y)*w+x0)*4,((y0+y)*w+x0+tw)*4),y*tw*4);
+    quetO(d,tw,th,x0,y0,out);
+  }}
+  var thay={};out.forEach(function(o){thay[o.ma]=thay[o.ma]||o;});
+  return Object.keys(thay).map(function(k){return thay[k];});
+}
+function xuLy(ds){
+  ds.forEach(function(d){
+    if(cheDo==='ma'){ if(/^[A-Z2-9]{6}$/.test(d.ma)&&d.ma.indexOf('-')<0){dongQuet();$('ma').value=d.ma;vaoPhong(d.ma);} return; }
+    if(la[d.ma])return;
+    if('ABCD'.indexOf(d.chu)>=P.n)return;               // đáp án không có ở câu này
+    var h=cho[d.ma]=(cho[d.ma]||[]);h.push(d.chu);if(h.length>4)h.shift();
+    var n=h.length;
+    if(n>=2&&h[n-1]===h[n-2]&&daGui[d.ma]!==d.chu)choGui[d.ma]=d.chu;      // thấy ổn định 2 lần mới ghi nhận
+  });
+}
+function gui(){
+  if(dangGui||!P.ma||P.cau==='')return;
+  var ks=Object.keys(choGui);if(!ks.length)return;
+  var lo=ks.map(function(m){return [m,choGui[m]];}),cauGui=P.cau;dangGui=true;
+  goi('quetGui',[P.ma,cauGui,lo]).then(function(r){
+    dangGui=false;
+    if(String(r.cau)!==String(cauGui)){datCau(r.cau,r.n,r.daQuet);return;}
+    var moi=0;r.nhan.forEach(function(m){if(daGui[m]!==choGui[m])moi++;daGui[m]=choGui[m];delete choGui[m];});
+    r.la.forEach(function(m){la[m]=1;delete choGui[m];});
+    if(moi)bip();P.n=r.n;P.quet=r.daQuet;veCau();
+  }).catch(function(){dangGui=false;});
+}
+function veKhung(ds,vw,vh){
+  var p=$('phu'),W=p.clientWidth,H=p.clientHeight;if(p.width!==W){p.width=W;p.height=H;}
+  var g=p.getContext('2d');g.clearRect(0,0,W,H);
+  var s=Math.max(W/vw,H/vh),ox=(W-vw*s)/2,oy=(H-vh*s)/2,mau={A:'#e5484d',B:'#2f6fed',C:'#f5a623',D:'#2fa36b'};
+  ds.forEach(function(d){
+    var dung=cheDo==='the'&&daGui[d.ma]===d.chu,x=ox+d.x0*s,y=oy+d.y0*s,w=(d.x1-d.x0)*s,h=(d.y1-d.y0)*s;
+    var c=cheDo==='ma'?'#2457d6':(la[d.ma]?'#888':mau[d.chu]);
+    g.lineWidth=dung?6:3;g.strokeStyle=c;g.strokeRect(x,y,w,h);
+    var fs=Math.max(14,Math.min(h*0.5,40));g.fillStyle=c;g.fillRect(x,y-fs-4,Math.max(w,fs*4.4),fs+4);
+    g.fillStyle='#fff';g.font='bold '+fs*0.8+'px system-ui';g.fillText((la[d.ma]?'? ':'')+d.ma+(cheDo==='the'&&!la[d.ma]?' → '+d.chu+(dung?' ✓':''):''),x+4,y-6);
+  });
+}
+function vong(){
+  if(!dangQuet)return;
+  var v=$('vid');
+  if(v.readyState>=2&&v.videoWidth){
+    var sc=Math.min(1,1280/v.videoWidth),w=Math.round(v.videoWidth*sc),h=Math.round(v.videoHeight*sc);
+    var ds=docKhung(v,w,h),now=performance.now();
+    xuLy(ds);gui();
+    ds.forEach(function(d){d.t=now;gan[d.ma]=d;});
+    var hien=[];for(var k in gan){if(now-gan[k].t<1500)hien.push(gan[k]);else delete gan[k];}
+    veKhung(hien,w,h);
+    $('hudTxt').textContent=cheDo==='ma'?'Đưa camera vào mã vuông trên màn hình máy tính':('Câu '+(P.cau===''?'—':Number(P.cau)+1)+' · đã quét '+P.quet+'/'+P.soHS);
+  }
+  setTimeout(function(){requestAnimationFrame(vong);},120);
+}
+function moQuet(che){
+  cheDo=che;gan={};
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){loi('Trình duyệt này không mở được camera. Cô mở bằng Chrome hoặc Safari (không dùng trong Zalo).');return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}).then(function(s){
+    stream=s;var v=$('vid');v.srcObject=s;v.play();$('quet').style.display='block';dangQuet=true;vong();
+    var tr=s.getVideoTracks()[0],cap=tr.getCapabilities?tr.getCapabilities():{},nd=$('nutDen');
+    nd.style.display=cap.torch?'':'none';
+    nd.onclick=function(){nd.dataset.on=nd.dataset.on==='1'?'0':'1';tr.applyConstraints({advanced:[{torch:nd.dataset.on==='1'}]}).catch(function(){});};
+  }).catch(function(){loi('Chưa cho phép camera. Cô bấm Cho phép khi trình duyệt hỏi.');});
+}
+function dongQuet(){dangQuet=false;if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}$('quet').style.display='none';}
+
+$('nutVao').onclick=function(){vaoPhong($('ma').value);};
+$('ma').onkeydown=function(e){if(e.key==='Enter')vaoPhong($('ma').value);};
+$('nutQuetMa').onclick=function(){moQuet('ma');};
+$('nutBat').onclick=function(){moQuet('the');};
+$('xong').onclick=function(){dongQuet();if(P.ma)lam_moi();};
+$('nutRoi').onclick=function(){roi('');};
+window.__quetAnh=function(src,w,h,co){return docKhung(src,w,h,co);};
+window.__thu={xuLy:xuLy,gui:gui,P:P,cho:cho};      // dùng cho kiểm thử tự động
+try{var m=new URLSearchParams(location.search).get('p')||sessionStorage.getItem('qt-phong');if(m){$('ma').value=m.toUpperCase();vaoPhong(m);}}catch(e){}
+})();
+</script>
+</body>
+</html>
