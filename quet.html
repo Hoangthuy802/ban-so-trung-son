@@ -93,7 +93,7 @@ function vaoPhong(ma){
   if(!/^[A-Z2-9]{6}$/.test(ma)){loi('Mã phòng gồm 6 ký tự (chữ và số).');return;}
   loi('Đang vào phòng…');
   goi('quetVao',[ma]).then(function(r){
-    loi('');P.ma=ma;P.cau=r.cau;P.n=r.n;P.soHS=r.soHS;P.quet=r.daQuet;
+    loi('');P.ma=ma;P.cau=r.cau;P.ten=r.ten||'';P.n=r.n;P.soHS=r.soHS;P.quet=r.daQuet;
     $('pMa').textContent=ma;$('pLop').textContent=r.lop;$('pSo').textContent=r.soHS;
     $('vao').style.display='none';$('phong').style.display='block';
     try{sessionStorage.setItem('qt-phong',ma);}catch(e){}
@@ -101,16 +101,16 @@ function vaoPhong(ma){
   }).catch(function(e){loi(String(e.message||e).replace(/^Error:\s*/,''));});
 }
 function veCau(){
-  $('pCau').textContent=P.cau===''?'Chưa có câu chọn đáp án':('Câu '+(Number(P.cau)+1)+' ('+P.n+' đáp án)');
+  $('pCau').textContent=P.cau===''?'Chưa có câu chọn đáp án':(P.ten?P.ten:('Câu '+(Number(P.cau)+1)+' ('+P.n+' đáp án)'));
   $('pQuet').textContent=P.quet?('Đã quét '+P.quet+'/'+P.soHS+' em ở câu này.'):'Chưa quét em nào ở câu này.';
 }
-function datCau(c,n,q){
+function datCau(c,n,q,ten){
   if(c!==P.cau){P.cau=c;daGui={};cho={};la={};choGui={};gan={};}
-  P.n=n;if(q!==undefined)P.quet=q;veCau();
+  P.n=n;P.ten=ten||'';if(q!==undefined)P.quet=q;veCau();
 }
 function lam_moi(){
   if(dangQuet||!P.ma)return;
-  goi('quetVao',[P.ma]).then(function(r){datCau(r.cau,r.n,r.daQuet);}).catch(function(e){
+  goi('quetVao',[P.ma]).then(function(r){datCau(r.cau,r.n,r.daQuet,r.ten);}).catch(function(e){
     if(/không còn/.test(String(e.message)))roi('Phòng đã đóng hoặc hết hạn. Cô mở lại phòng trên máy tính.');});
 }
 function roi(t){clearInterval(tim);P.ma='';$('phong').style.display='none';$('vao').style.display='block';loi(t||'');try{sessionStorage.removeItem('qt-phong');}catch(e){}}
@@ -159,7 +159,7 @@ function gui(){
   var lo=ks.map(function(m){return [m,choGui[m]];}),cauGui=P.cau;dangGui=true;
   goi('quetGui',[P.ma,cauGui,lo]).then(function(r){
     dangGui=false;
-    if(String(r.cau)!==String(cauGui)){datCau(r.cau,r.n,r.daQuet);return;}
+    if(String(r.cau)!==String(cauGui)){datCau(r.cau,r.n,r.daQuet,r.ten);return;}
     Object.keys(r.ghi||{}).forEach(function(m){daGui[m]=r.ghi[m];delete choGui[m];});      // máy chủ trả đáp án ĐÃ GHI của từng thẻ (đầu tiên)
     r.la.forEach(function(m){la[m]=1;delete choGui[m];});
     if(r.nhan&&r.nhan.length)bip();P.n=r.n;P.quet=r.daQuet;veCau();
@@ -187,7 +187,7 @@ function vong(){
     ds.forEach(function(d){d.t=now;gan[d.ma]=d;});
     var hien=[];for(var k in gan){if(now-gan[k].t<1500)hien.push(gan[k]);else delete gan[k];}
     veKhung(hien,w,h);
-    $('hudTxt').textContent=cheDo==='ma'?'Đưa camera vào mã vuông trên màn hình máy tính':('Câu '+(P.cau===''?'—':Number(P.cau)+1)+' · đã quét '+P.quet+'/'+P.soHS);
+    $('hudTxt').textContent=cheDo==='ma'?'Đưa camera vào mã vuông trên màn hình máy tính':((P.ten?P.ten.replace(/ \(A = .*$/,''):('Câu '+(P.cau===''?'—':Number(P.cau)+1)))+' · đã quét '+P.quet+'/'+P.soHS);
   }
   setTimeout(function(){requestAnimationFrame(vong);},120);
 }
