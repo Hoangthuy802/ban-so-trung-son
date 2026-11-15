@@ -36,7 +36,7 @@ input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-r
   <div class="nhap">Bản số Trung Sơn · ✅ BẢN NHÁP — cô duyệt trước khi dùng</div>
 
   <div id="vao" class="the">
-    <div class="mut">Trên máy tính, bài chiếu hiện <b>mã phòng 6 ký tự</b> cùng một mã vuông. Cô quét mã vuông đó, hoặc gõ mã phòng:</div>
+    <div class="mut">Cách nhanh nhất: dùng <b>camera thường của điện thoại</b> quét mã vuông trên bài chiếu, trang này tự mở và tự vào phòng. Hoặc gõ <b>mã phòng 6 ký tự</b> hiện trên máy tính:</div>
     <div style="margin:12px 0"><input id="ma" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="K7M2QX"></div>
     <div class="hang"><button class="pri to" id="nutVao">Vào phòng</button></div>
     <div class="hang"><button class="to" id="nutQuetMa">📷 Quét mã vuông trên máy tính</button></div>
@@ -134,7 +134,7 @@ function docKhung(src,w,h,co){
 }
 function xuLy(ds){
   ds.forEach(function(d){
-    if(cheDo==='ma'){ if(/^[A-Z2-9]{6}$/.test(d.ma)&&d.ma.indexOf('-')<0){dongQuet();$('ma').value=d.ma;vaoPhong(d.ma);} return; }
+    if(cheDo==='ma'){ var mp=/^[A-Z2-9]{6}$/.test(d.ma)?d.ma:((/[?&]P=([A-Z2-9]{6})(&|$)/.exec(d.ma)||[])[1]||''); if(mp){dongQuet();$('ma').value=mp;vaoPhong(mp);} return; }
     if(la[d.ma])return;
     if('ABCD'.indexOf(d.chu)>=P.n)return;               // đáp án không có ở câu này
     var h=cho[d.ma]=(cho[d.ma]||[]);h.push(d.chu);if(h.length>4)h.shift();
