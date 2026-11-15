@@ -60,7 +60,7 @@ input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-r
     <div class="mut" id="pQuet">Chưa quét em nào ở câu này.</div>
     <div class="hang"><button class="pri to" id="nutBat">📷 Bật camera quét thẻ</button></div>
     <div class="hang"><button id="nutRoi">Rời phòng</button></div>
-    <p class="mut">Mẹo: đứng cách các em 2–4 m, đưa máy chậm qua từng dãy 8–10 em, mỗi em giơ thẻ ngang ngực khoảng 2 giây. Thẻ nào máy đọc được sẽ hiện khung màu cùng mã HS và chữ A/B/C/D.</p>
+    <p class="mut">Mẹo: đứng cách các em 2–4 m, đưa máy chậm qua từng dãy 8–10 em, mỗi em giơ thẻ ngang ngực khoảng 2 giây. Thẻ nào máy đọc được sẽ hiện khung màu cùng mã HS và chữ A/B/C/D. <b>Mỗi thẻ chỉ tính 1 lần trong mỗi câu: máy ghi đáp án đầu tiên (hiện 🔒), quét lại hay xoay sang chữ khác không tính.</b></p>
   </div>
 </div>
 
@@ -146,11 +146,11 @@ function docKhung(src,w,h,co){
 function xuLy(ds){
   ds.forEach(function(d){
     if(cheDo==='ma'){ var mp=/^[A-Z2-9]{6}$/.test(d.ma)?d.ma:((/[?&]P=([A-Z2-9]{6})(&|$)/.exec(d.ma)||[])[1]||''); if(mp){dongQuet();$('ma').value=mp;vaoPhong(mp);} return; }
-    if(la[d.ma])return;
+    if(la[d.ma]||daGui[d.ma]!==undefined)return;         // thẻ không thuộc lớp, hoặc thẻ đã được ghi ở câu này: bỏ qua
     if('ABCD'.indexOf(d.chu)>=P.n)return;               // đáp án không có ở câu này
     var h=cho[d.ma]=(cho[d.ma]||[]);h.push(d.chu);if(h.length>4)h.shift();
     var n=h.length;
-    if(n>=2&&h[n-1]===h[n-2]&&daGui[d.ma]!==d.chu)choGui[d.ma]=d.chu;      // thấy ổn định 2 lần mới ghi nhận
+    if(n>=2&&h[n-1]===h[n-2])choGui[d.ma]=d.chu;      // thấy ổn định 2 lần liên tiếp mới ghi nhận; đáp án ĐẦU TIÊN được khoá, quét lại/đổi chiều không tính
   });
 }
 function gui(){
@@ -160,9 +160,9 @@ function gui(){
   goi('quetGui',[P.ma,cauGui,lo]).then(function(r){
     dangGui=false;
     if(String(r.cau)!==String(cauGui)){datCau(r.cau,r.n,r.daQuet);return;}
-    var moi=0;r.nhan.forEach(function(m){if(daGui[m]!==choGui[m])moi++;daGui[m]=choGui[m];delete choGui[m];});
+    Object.keys(r.ghi||{}).forEach(function(m){daGui[m]=r.ghi[m];delete choGui[m];});      // máy chủ trả đáp án ĐÃ GHI của từng thẻ (đầu tiên)
     r.la.forEach(function(m){la[m]=1;delete choGui[m];});
-    if(moi)bip();P.n=r.n;P.quet=r.daQuet;veCau();
+    if(r.nhan&&r.nhan.length)bip();P.n=r.n;P.quet=r.daQuet;veCau();
   }).catch(function(){dangGui=false;});
 }
 function veKhung(ds,vw,vh){
@@ -170,11 +170,11 @@ function veKhung(ds,vw,vh){
   var g=p.getContext('2d');g.clearRect(0,0,W,H);
   var s=Math.max(W/vw,H/vh),ox=(W-vw*s)/2,oy=(H-vh*s)/2,mau={A:'#e5484d',B:'#2f6fed',C:'#f5a623',D:'#2fa36b'};
   ds.forEach(function(d){
-    var dung=cheDo==='the'&&daGui[d.ma]===d.chu,x=ox+d.x0*s,y=oy+d.y0*s,w=(d.x1-d.x0)*s,h=(d.y1-d.y0)*s;
-    var c=cheDo==='ma'?'#2457d6':(la[d.ma]?'#888':mau[d.chu]);
+    var kh=cheDo==='the'?daGui[d.ma]:undefined,dung=kh!==undefined,chu=dung?kh:d.chu,x=ox+d.x0*s,y=oy+d.y0*s,w=(d.x1-d.x0)*s,h=(d.y1-d.y0)*s;
+    var c=cheDo==='ma'?'#2457d6':(la[d.ma]?'#888':mau[chu]);
     g.lineWidth=dung?6:3;g.strokeStyle=c;g.strokeRect(x,y,w,h);
     var fs=Math.max(14,Math.min(h*0.5,40));g.fillStyle=c;g.fillRect(x,y-fs-4,Math.max(w,fs*4.4),fs+4);
-    g.fillStyle='#fff';g.font='bold '+fs*0.8+'px system-ui';g.fillText((la[d.ma]?'? ':'')+d.ma+(cheDo==='the'&&!la[d.ma]?' → '+d.chu+(dung?' ✓':''):''),x+4,y-6);
+    g.fillStyle='#fff';g.font='bold '+fs*0.8+'px system-ui';g.fillText((la[d.ma]?'? ':'')+d.ma+(cheDo==='the'&&!la[d.ma]?' → '+chu+(dung?' 🔒':''):''),x+4,y-6);
   });
 }
 function vong(){
