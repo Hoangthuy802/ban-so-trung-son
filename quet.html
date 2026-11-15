@@ -59,6 +59,8 @@ input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-r
     <div style="margin:8px 0"><div class="mut">Câu đang chiếu trên máy tính</div><div class="lon" id="pCau">—</div></div>
     <div class="mut" id="pQuet">Chưa quét em nào ở câu này.</div>
     <div class="hang"><button class="pri to" id="nutBat">📷 Bật camera quét thẻ</button></div>
+    <div class="hang"><button class="to" id="nutTiep" style="background:#2fa36b;border-color:#2fa36b;color:#fff;font-weight:700">▶ Chốt &amp; hiện đáp án</button></div>
+    <div class="hang"><button class="to" id="nutXem" style="display:none">👁 Xem đáp án cả câu</button></div>
     <div class="hang"><button id="nutRoi">Rời phòng</button></div>
     <p class="mut">Mẹo: đứng cách các em 2–4 m, đưa máy chậm qua từng dãy 8–10 em, mỗi em giơ thẻ ngang ngực khoảng 2 giây. Thẻ nào máy đọc được sẽ hiện khung màu cùng mã HS và chữ A/B/C/D. <b>Mỗi thẻ chỉ tính 1 lần trong mỗi câu: máy ghi đáp án đầu tiên (hiện 🔒), quét lại hay xoay sang chữ khác không tính.</b></p>
   </div>
@@ -68,7 +70,7 @@ input{font:inherit;width:100%;padding:14px;border:2px solid var(--line);border-r
   <video id="vid" playsinline muted></video>
   <canvas id="phu"></canvas>
   <div id="hud"><div class="to" id="hudTxt"></div><button id="nutDen" style="display:none">🔦</button></div>
-  <div class="duoi"><button id="xong" class="pri">Xong</button></div>
+  <div class="duoi"><button id="nutTiep2" style="background:#2fa36b;border-color:#2fa36b;color:#fff;font-weight:700">▶ Chốt</button><button id="xong" class="pri">Xong</button></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" integrity="sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx" crossorigin="anonymous"></script>
@@ -100,7 +102,23 @@ function vaoPhong(ma){
     veCau();clearInterval(tim);tim=setInterval(lam_moi,2500);
   }).catch(function(e){loi(String(e.message||e).replace(/^Error:\s*/,''));});
 }
+/* Nút điều khiển bài chiếu NGAY TRÊN ĐIỆN THOẠI: chốt ý / sang ý tiếp / xem đáp án (máy tính tự thực hiện, cô không phải bấm trên máy tính) */
+function capLenh(){
+  var m=/ý (\d+)\/(\d+)/.exec(P.ten||''),ds=!!m,nhan;
+  if(ds){var i=+m[1],n=+m[2];nhan=i<n?'▶ Chốt ý '+i+', sang ý '+(i+1):'✅ Chốt ý cuối · xem đáp án '+n+' ý';}else nhan='▶ Chốt & hiện đáp án';
+  $('nutTiep').textContent=nhan;$('nutTiep2').textContent=ds?(m[1]<m[2]?'▶ Sang ý '+(+m[1]+1):'✅ Xem đáp án'):'▶ Chốt';
+  $('nutXem').style.display=ds?'block':'none';
+  var co=P.cau!=='';$('nutTiep').disabled=!co;$('nutTiep2').disabled=!co;
+}
+function lenh(loai){
+  if(!P.ma||P.cau==='')return;
+  var bs=[$('nutTiep'),$('nutTiep2'),$('nutXem')];bs.forEach(function(b){b.disabled=true;});
+  goi('quetLenh',[P.ma,P.cau,loai]).then(function(r){
+    if(!r.ok){datCau(r.cau,P.n,undefined,r.ten);}else{bip();}
+  }).catch(function(){}).then(function(){setTimeout(function(){bs.forEach(function(b){b.disabled=P.cau==='';});},1500);});
+}
 function veCau(){
+  capLenh();
   $('pCau').textContent=P.cau===''?'Chưa có câu chọn đáp án':(P.ten?P.ten:('Câu '+(Number(P.cau)+1)+' ('+P.n+' đáp án)'));
   $('pQuet').textContent=P.quet?('Đã quét '+P.quet+'/'+P.soHS+' em ở câu này.'):'Chưa quét em nào ở câu này.';
 }
@@ -209,6 +227,7 @@ $('nutQuetMa').onclick=function(){moQuet('ma');};
 $('nutBat').onclick=function(){moQuet('the');};
 $('xong').onclick=function(){dongQuet();if(P.ma)lam_moi();};
 $('nutRoi').onclick=function(){roi('');};
+$('nutTiep').onclick=function(){lenh('tiep');};$('nutTiep2').onclick=function(){lenh('tiep');};$('nutXem').onclick=function(){lenh('xem');};
 /* 📲 Cài ứng dụng (PWA): Android hiện nút Cài; iPhone chỉ cách thêm vào màn hình chính */
 var daCai=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
 var ev_cai=null;
