@@ -571,17 +571,17 @@ body.tg .tien{display:none}
   <section class="man" id="m-gv">
     <div class="the" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <b style="font-size:18px">👩‍🏫 Bảng giáo viên</b>
-      <span id="locDeGV" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="locKhoi" title="Chọn khối" style="max-width:120px"></select>
-        <select id="locMon" title="Chọn môn" style="max-width:170px"></select>
-        <select id="locPhan" title="Chọn phân môn" style="max-width:150px;display:none"></select>
-        <select id="locLoai" title="Chọn loại: Ôn tập hoặc Kiểm tra" style="max-width:200px"></select>
-      </span>
-      <select id="chonDe" style="max-width:360px"></select>
       <button class="nut phu2" id="nutTaiLai">🔄 Tải lại</button>
       <button class="nut" id="nutXuatDiemTop" title="Tải CSV điểm của đề đang chọn: mọi lớp, mỗi em một dòng (mã HS, mã PIN, lớp, điểm)">⬇️ Xuất điểm đề này</button>
       <button class="nut" id="nutXuatKPTop" title="Tải CSV tiến độ các bài Khám phá của lớp đang chọn ở tab Khám phá">⬇️ Xuất tiến độ bài (Khám phá)</button>
       <span class="phu" style="margin-left:auto">Chỉ cô xem · không xếp hạng, không so sánh học sinh</span>
+      <div id="locDeGV" style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
+        <select id="locKhoi" title="Chọn khối" style="min-width:110px"></select>
+        <select id="locMon" title="Chọn môn" style="min-width:170px"></select>
+        <select id="locPhan" title="Chọn phân môn" style="min-width:150px;display:none"></select>
+        <select id="locLoai" title="Chọn loại: Ôn tập, Kiểm tra hoặc Khám phá" style="min-width:150px"></select>
+        <select id="chonDe" style="flex:1;min-width:260px"></select>
+      </div>
     </div>
     <div class="tab" id="tabGV">
       <button data-t="tien-trinh" class="on">📈 Tiến trình</button>
@@ -629,8 +629,8 @@ body.tg .tien{display:none}
       <div class="the"><h3 style="margin:0 0 8px">🛡️ Nhật ký (mới nhất ở trên)</h3><div id="dsNhatKy"></div></div>
     </div>
     <div id="gv-kham-pha" class="gvp" style="display:none">
-      <div class="the" style="margin-bottom:12px"><b>📺 Chiếu bài trên lớp (mọi môn, mọi khối)</b> <span class="phu">Mở trọn bài trên máy cô nối tivi; cả lớp trả lời bằng cử chỉ trước camera, không cần máy riêng, không ghi tiến độ.</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="chonMonChieu" title="Môn" style="min-width:150px"></select><select id="chonKhoiChieu" title="Khối" style="min-width:110px"></select><select id="chonChieu" style="flex:1;min-width:260px"></select><button class="nut" id="nutChieuTat">📺 Chiếu bài này</button><button class="nut phu2" id="nutTaiThe" title="Tải bộ thẻ giơ đáp án dùng chung về máy để in ở máy khác">⬇️ Tải bộ thẻ về in</button></div></div>
+      <div class="the" style="margin-bottom:12px"><b>📺 Chiếu bài trên lớp</b> <span class="phu">(theo Khối · Môn đã chọn ở trên)</span> <span class="phu">Mở trọn bài trên máy cô nối tivi; cả lớp trả lời bằng cử chỉ trước camera, không cần máy riêng, không ghi tiến độ.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="chonMonChieu" title="Môn" style="display:none"></select><select id="chonKhoiChieu" title="Khối" style="display:none"></select><select id="chonChieu" style="flex:1;min-width:260px"></select><button class="nut" id="nutChieuTat">📺 Chiếu bài này</button><button class="nut phu2" id="nutTaiThe" title="Tải bộ thẻ giơ đáp án dùng chung về máy để in ở máy khác">⬇️ Tải bộ thẻ về in</button></div></div>
       <div class="the" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <b>🧭 Tiến độ Khám phá bài mới</b>
         <select id="chonLopKP" style="max-width:200px;padding:8px 12px;font-size:14px"></select>
@@ -1880,58 +1880,85 @@ var GV = { de: null, tq: null, bai: [], chon: null };
 function monCuaDe(d) { if (d.mon) return d.mon; var m = /^[A-Za-z]+/.exec(String(d.ma || '')); m = m ? m[0].toUpperCase() : ''; return MON_TEN[m] ? m : 'TIN'; }
 function khoiDongGV() {
   moMan('gv');
-  goi('gvDanhSachDe').then(function (ds) {
-    ds.forEach(function (d) { d._mon = monCuaDe(d); });
-    GV.dsDe = ds;
+  Promise.all([goi('gvDanhSachDe'), goi('gvTatCaBai').catch(function () { return []; })]).then(function (r) {
+    var ds = r[0]; ds.forEach(function (d) { d._mon = monCuaDe(d); });
+    GV.dsDe = ds; GV.dsChieu = r[1] || [];
     var muon = layThamSo('de'), dm = null; ds.forEach(function (d) { if (d.ma === muon) dm = d; });
     dungLocDe(dm);
     locDe(muon);
     taiGV();
   }).catch(function (e) { $('kpi').innerHTML = '<div class="the">⚠️ ' + an(e.message || e) + '</div>'; });
 }
-/* 🗂️ Chia đề theo KHỐI → MÔN → LOẠI (Ôn tập · Kiểm tra) cho thầy cô dễ tìm; Khám phá có thẻ riêng */
+/* 🗂️ MỘT bộ chọn duy nhất: KHỐI → MÔN (→ phân môn) → LOẠI (Ôn tập · Kiểm tra · Khám phá). Mọi thẻ bên dưới chạy theo bộ này. */
 var THU_TU_MON = ['TIN', 'TOAN', 'ANH', 'KHTN', 'LSDL'];
-var GV_MON_NHOM = { LY: 'KHTN', HOA: 'KHTN', SINH: 'KHTN', SU: 'LSDL', DIA: 'LSDL' };
 var THU_TU_PHAN = ['TIN', 'TOAN', 'ANH', 'LY', 'HOA', 'SINH', 'SU', 'DIA'];
+var GV_MON_NHOM = { LY: 'KHTN', HOA: 'KHTN', SINH: 'KHTN', SU: 'LSDL', DIA: 'LSDL' };
 var NHOM_TEN = { KHTN: 'KHTN (Lí – Hóa – Sinh)', LSDL: 'Lịch sử và Địa lí' };
 var NHOM_PHAN = { KHTN: ['LY', 'HOA', 'SINH'], LSDL: ['SU', 'DIA'] };
 function nhomMon(m) { return GV_MON_NHOM[m] || m; }
 function tenNhom(n) { return NHOM_TEN[n] || MON_TEN[n] || n; }
+function thuTuDe(d) { var i = THU_TU_MON.indexOf(nhomMon(d._mon)); return [i < 0 ? 99 : i, THU_TU_PHAN.indexOf(d._mon), d.lop, d.cheDo === 'Ôn tập' ? 0 : 1]; }
+function soThuTuDe(p, q) { var a = thuTuDe(p), b = thuTuDe(q); for (var k = 0; k < 4; k++) if (a[k] !== b[k]) return a[k] - b[k]; return 0; }
 function dungLocDe(dm) {
-  var ds = GV.dsDe || [], kh = [], mon = [];
-  ds.forEach(function (d) { if (kh.indexOf(d.lop) < 0) kh.push(d.lop); var n = nhomMon(d._mon); if (mon.indexOf(n) < 0) mon.push(n); });
+  var ds = GV.dsDe || [], bs = GV.dsChieu || [], kh = [], mon = [];
+  var them = function (k, m) { k = Number(k); if (k && kh.indexOf(k) < 0) kh.push(k); var n = nhomMon(m); if (n && mon.indexOf(n) < 0) mon.push(n); };
+  ds.forEach(function (d) { them(d.lop, d._mon); }); bs.forEach(function (b) { them(b.khoi, b.mon); });
   kh.sort(function (x, y) { return x - y; });
   mon.sort(function (x, y) { var i = THU_TU_MON.indexOf(x), j = THU_TU_MON.indexOf(y); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
-  $('locKhoi').innerHTML = '<option value="">Tất cả khối</option>' + kh.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('');
-  $('locMon').innerHTML = '<option value="">Tất cả môn</option>' + mon.map(function (m) { return '<option value="' + an(m) + '">' + an(tenNhom(m)) + '</option>'; }).join('');
-  $('locLoai').innerHTML = '<option value="">Ôn tập + Kiểm tra</option><option value="Ôn tập">🎯 Ôn tập</option><option value="Kiểm tra">📝 Kiểm tra</option>';
-  if (dm) { $('locKhoi').value = String(dm.lop); $('locMon').value = nhomMon(dm._mon); $('locLoai').value = dm.cheDo; }
+  $('locKhoi').innerHTML = kh.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('');
+  $('locMon').innerHTML = mon.map(function (m) { return '<option value="' + an(m) + '">' + an(tenNhom(m)) + '</option>'; }).join('');
+  $('locLoai').innerHTML = '<option value="Ôn tập">🎯 Ôn tập</option><option value="Kiểm tra">📝 Kiểm tra</option><option value="kham-pha">🧭 Khám phá</option>';
+  if (!dm && ds.length) dm = ds.slice().sort(soThuTuDe)[0];
+  if (dm) { $('locKhoi').value = String(dm.lop); $('locMon').value = nhomMon(dm._mon); $('locLoai').value = dm.cheDo; GV.loaiTruoc = dm.cheDo; }
   dungLocPhan(dm && GV_MON_NHOM[dm._mon] ? dm._mon : '');
 }
-/* KHTN → Vật lí · Hóa học · Sinh học; Lịch sử và Địa lí → Lịch sử · Địa lí. Môn khác: ẩn ô phân môn */
+/* KHTN → Vật lí · Hóa học · Sinh học; Lịch sử và Địa lí → Lịch sử · Địa lí. Khám phá bắt buộc chọn đúng một phân môn. */
 function dungLocPhan(giu) {
-  var n = $('locMon').value, ph = NHOM_PHAN[n];
+  var n = $('locMon').value, ph = NHOM_PHAN[n], kp = $('locLoai').value === 'kham-pha';
   if (!ph) { $('locPhan').style.display = 'none'; $('locPhan').innerHTML = ''; return; }
-  $('locPhan').innerHTML = '<option value="">Cả ' + ph.length + ' phân môn</option>' + ph.map(function (m) { return '<option value="' + m + '">' + an(MON_TEN[m]) + '</option>'; }).join('');
+  $('locPhan').innerHTML = (kp ? '' : '<option value="">Cả ' + ph.length + ' phân môn</option>') + ph.map(function (m) { return '<option value="' + m + '">' + an(MON_TEN[m]) + '</option>'; }).join('');
   $('locPhan').style.display = '';
   if (giu && ph.indexOf(giu) >= 0) $('locPhan').value = giu;
 }
 function locDe(giu) {
   var kh = $('locKhoi').value, mo = $('locMon').value, ph = $('locPhan').value, lo = $('locLoai').value, cu = giu || $('chonDe').value;
+  if (lo === 'kham-pha') {   /* Khám phá là bài học: dùng cùng Khối · Môn, ô chọn đề nhường chỗ cho ô chọn bài ở thẻ Khám phá */
+    $('chonDe').style.display = 'none';
+    if (NHOM_PHAN[mo] && !ph) {   /* chưa chọn phân môn: lấy phân môn đầu tiên có bài ở khối này */
+      var co = NHOM_PHAN[mo].filter(function (m) { return (GV.dsChieu || []).some(function (b) { return b.mon === m && String(b.khoi) === kh; }); });
+      ph = co[0] || NHOM_PHAN[mo][0]; $('locPhan').value = ph;
+    }
+    dongBoKhamPha(NHOM_PHAN[mo] ? ph : mo, kh);
+    moTab('kham-pha');
+    return;
+  }
   $('chonDe').style.display = '';
-  var xs = (GV.dsDe || []).filter(function (d) { return (!kh || String(d.lop) === kh) && (!mo || nhomMon(d._mon) === mo) && (!ph || d._mon === ph) && (!lo || d.cheDo === lo); });
-  var vt = function (d) { var i = THU_TU_MON.indexOf(nhomMon(d._mon)); return [i < 0 ? 99 : i, THU_TU_PHAN.indexOf(d._mon), d.lop, d.cheDo === 'Ôn tập' ? 0 : 1]; };
-  xs = xs.map(function (d, i) { return [vt(d), i, d]; }).sort(function (p, q) { for (var k = 0; k < 4; k++) if (p[0][k] !== q[0][k]) return p[0][k] - q[0][k]; return p[1] - q[1]; }).map(function (z) { return z[2]; });
+  var xs = (GV.dsDe || []).filter(function (d) { return String(d.lop) === kh && nhomMon(d._mon) === mo && (!ph || d._mon === ph) && d.cheDo === lo; });
+  xs.sort(soThuTuDe);
   var nhom = {}, thu = [];
-  xs.forEach(function (d) { var n = nhomMon(d._mon), k = 'Khối ' + d.lop + ' · ' + (n === d._mon ? (MON_TEN[n] || n) : (n === 'KHTN' ? 'KHTN' : 'LS & ĐL') + ' – ' + MON_TEN[d._mon]) + ' · ' + d.cheDo; if (!nhom[k]) { nhom[k] = []; thu.push(k); } nhom[k].push(d); });
-  $('chonDe').innerHTML = xs.length ? thu.map(function (k) {
-    return '<optgroup label="' + an(k) + '">' + nhom[k].map(function (d) { return '<option value="' + an(d.ma) + '">' + an(d.ma + ' — ' + d.ten) + '</option>'; }).join('') + '</optgroup>';
-  }).join('') : '<option value="">(không có đề nào khớp bộ lọc)</option>';
+  xs.forEach(function (d) { var n = nhomMon(d._mon), k = n === d._mon ? '' : (n === 'KHTN' ? 'KHTN – ' : 'LS & ĐL – ') + MON_TEN[d._mon]; if (!nhom[k]) { nhom[k] = []; thu.push(k); } nhom[k].push(d); });
+  var opt = function (d) { return '<option value="' + an(d.ma) + '">' + an(d.ma + ' — ' + d.ten) + '</option>'; };
+  $('chonDe').innerHTML = xs.length ? thu.map(function (k) { return k && thu.length > 1 ? '<optgroup label="' + an(k) + '">' + nhom[k].map(opt).join('') + '</optgroup>' : nhom[k].map(opt).join(''); }).join('') : '<option value="">(chưa có đề ' + (lo === 'Ôn tập' ? 'ôn tập' : 'kiểm tra') + ' ở khối và môn này)</option>';
   if (cu && xs.some(function (d) { return d.ma === cu; })) $('chonDe').value = cu;
 }
-function doiLocDe() { locDe(); if (document.querySelector('#tabGV button[data-t="kham-pha"].on')) moTab('tien-trinh'); taiGV(); }
-$('locKhoi').onchange = $('locPhan').onchange = $('locLoai').onchange = doiLocDe;
+/* Khám phá chạy theo Khối · Môn của bộ chọn duy nhất: hai ô cũ ở thẻ Khám phá chỉ còn là chỗ lưu (ẩn) */
+function dongBoKhamPha(mon, kh) {
+  var xs = (GV.dsChieu || []).filter(function (b) { return b.mon === mon && String(b.khoi) === String(kh); });
+  $('chonMonChieu').innerHTML = '<option value="' + an(mon) + '">' + an(MON_TEN[mon] || mon) + '</option>';
+  $('chonKhoiChieu').innerHTML = '<option value="' + an(kh) + '">Khối ' + an(kh) + '</option>';
+  $('chonChieu').innerHTML = xs.length ? xs.map(function (b) { return '<option value="' + an(b.ma) + '">' + an(b.ten) + ' (' + an(b.ma) + ')' + (b.tt === 'Mở' ? '' : ' — ' + an(b.tt || 'nháp')) + '</option>'; }).join('') : '<option value="">(chưa có bài Khám phá ở khối ' + an(kh) + ' · ' + an(MON_TEN[mon] || mon) + ')</option>';
+  capNhatKP();
+}
+function doiLocDe() {
+  var lo = $('locLoai').value; if (lo !== 'kham-pha') GV.loaiTruoc = lo;
+  locDe();
+  if (lo === 'kham-pha') return;
+  GV.dangDongBo = 1; if (document.querySelector('#tabGV button[data-t="kham-pha"].on')) moTab('tien-trinh'); GV.dangDongBo = 0;
+  taiGV();
+}
+$('locKhoi').onchange = $('locPhan').onchange = doiLocDe;
 $('locMon').onchange = function () { dungLocPhan(''); doiLocDe(); };
+$('locLoai').onchange = function () { dungLocPhan($('locPhan').value); doiLocDe(); };
 function taiGV() {
   GV.de = $('chonDe').value;
   taiTienTrinh();
@@ -1942,6 +1969,11 @@ function taiGV() {
   }).catch(function (e) { $('kpi').innerHTML = '<div class="the">⚠️ ' + an(e.message || e) + '</div>'; });
 }
 function moTab(t) {
+  if (!GV.dangDongBo && $('locLoai') && $('locLoai').value) {   /* bấm thẻ Khám phá ⇄ ô Loại luôn đi cùng nhau */
+    var kp = $('locLoai').value === 'kham-pha';
+    if (t === 'kham-pha' && !kp) { GV.loaiTruoc = $('locLoai').value; $('locLoai').value = 'kham-pha'; dungLocPhan($('locPhan').value); GV.dangDongBo = 1; try { locDe(); } finally { GV.dangDongBo = 0; } return; }
+    if (t !== 'kham-pha' && kp) { $('locLoai').value = GV.loaiTruoc || 'Ôn tập'; dungLocPhan($('locPhan').value); GV.dangDongBo = 1; try { locDe(); } finally { GV.dangDongBo = 0; } taiGV(); }
+  }
   document.querySelectorAll('#tabGV button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
   document.querySelectorAll('.gvp').forEach(function (p) { p.style.display = p.id === 'gv-' + t ? 'block' : 'none'; });
   if (t === 'ban-do-loi') veBanDoLoi();
@@ -1952,35 +1984,7 @@ function moTab(t) {
   if (t === 'kham-pha') { taiKhamPha(); taiDsChieu(); }
   if (t === 'gvbm') taiPC();
 }
-function taiDsChieu() {
-  if (GV.dsChieu) return;
-  goi('gvTatCaBai').then(function (ds) {
-    GV.dsChieu = ds;
-    var mon = [], thay = {};
-    ds.forEach(function (b) { if (!thay[b.mon]) { thay[b.mon] = 1; mon.push([b.mon, b.tenMon]); } });
-    var opt = function (m) { return '<option value="' + an(m[0]) + '">' + an(m[1]) + '</option>'; }, nh = {}, ra = [];
-    mon.sort(function (x, y) { return THU_TU_PHAN.indexOf(x[0]) - THU_TU_PHAN.indexOf(y[0]); });
-    mon.forEach(function (m) { var n = GV_MON_NHOM[m[0]]; if (n) { if (!nh[n]) { nh[n] = []; ra.push(['g', n]); } nh[n].push(m); } else ra.push(['m', m]); });
-    $('chonMonChieu').innerHTML = mon.length ? ra.map(function (r) { return r[0] === 'm' ? opt(r[1]) : '<optgroup label="' + an(tenNhom(r[1])) + '">' + nh[r[1]].map(opt).join('') + '</optgroup>'; }).join('') : '<option value="">(chưa có môn)</option>';
-    locKhoiChieu();
-  }).catch(function (e) { $('chonChieu').innerHTML = '<option value="">⚠️ ' + an(e.message || e) + '</option>'; });
-}
-/* chọn môn → liệt kê các khối có bài; chọn khối → liệt kê các bài của môn đó, đúng thứ tự bài */
-function locKhoiChieu() {
-  var ds = GV.dsChieu || [], m = $('chonMonChieu').value, kh = [];
-  ds.forEach(function (b) { if (b.mon === m && kh.indexOf(b.khoi) < 0) kh.push(b.khoi); });
-  kh.sort(function (x, y) { return x - y; });
-  var cu = $('chonKhoiChieu').value;
-  $('chonKhoiChieu').innerHTML = kh.length ? kh.map(function (k) { return '<option value="' + k + '">Khối ' + k + '</option>'; }).join('') : '<option value="">(chưa có khối)</option>';
-  if (cu && kh.indexOf(Number(cu)) >= 0) $('chonKhoiChieu').value = cu;
-  locBaiChieu();
-}
-function locBaiChieu() {
-  var ds = GV.dsChieu || [], m = $('chonMonChieu').value, k = Number($('chonKhoiChieu').value);
-  var xs = ds.filter(function (b) { return b.mon === m && b.khoi === k; });
-  $('chonChieu').innerHTML = xs.length ? xs.map(function (b) { return '<option value="' + an(b.ma) + '">' + an(b.ten) + ' (' + an(b.ma) + ')' + (b.tt === 'Mở' ? '' : ' — ' + an(b.tt || 'nháp')) + '</option>'; }).join('') : '<option value="">(chưa có bài Khám phá)</option>';
-  capNhatKP();
-}
+function taiDsChieu() { }   /* danh sách bài đã tải cùng lúc với danh sách đề (khoiDongGV) */
 /* khối đang chọn khác khối của lớp đang xem → tự chuyển sang lớp cùng khối (nếu có), rồi vẽ lại chỉ bài đã chọn */
 function capNhatKP() {
   var k = Number($('chonKhoiChieu').value), kp = GV.kp;
@@ -1990,7 +1994,7 @@ function capNhatKP() {
   }
   veKhamPha();
 }
-$('chonMonChieu').onchange = locKhoiChieu; $('chonKhoiChieu').onchange = locBaiChieu; $('chonChieu').onchange = veKhamPha;
+$('chonChieu').onchange = veKhamPha;
 $('nutTaiThe').onclick = function () { inTheLop('', [], true); };
 $('nutChieuTat').onclick = function () { var v = $('chonChieu').value; if (v) chieuBaiChu(v); };
 /* 👩‍🏫 Phân công + tạo tài khoản GV bộ môn (nhúng trang phân công của máy chủ) */
