@@ -590,7 +590,6 @@ body.tg .tien{display:none}
       <button data-t="cham">✍️ Chấm tự luận / thực hành</button>
       <button data-t="gian-lan">🛡️ Nhật ký làm bài</button>
       <button data-t="tin-ph">👪 Phụ huynh</button>
-      <button data-t="kham-pha">🧭 Khám phá</button>
       <button data-t="gvbm">👩‍🏫 Tài khoản GV bộ môn</button>
     </div>
     <div id="gv-gvbm" class="gvp" style="display:none">
@@ -1953,7 +1952,7 @@ function doiLocDe() {
   var lo = $('locLoai').value; if (lo !== 'kham-pha') GV.loaiTruoc = lo;
   locDe();
   if (lo === 'kham-pha') return;
-  GV.dangDongBo = 1; if (document.querySelector('#tabGV button[data-t="kham-pha"].on')) moTab('tien-trinh'); GV.dangDongBo = 0;
+  GV.dangDongBo = 1; if ($('gv-kham-pha').style.display === 'block') moTab('tien-trinh'); GV.dangDongBo = 0;
   taiGV();
 }
 $('locKhoi').onchange = $('locPhan').onchange = doiLocDe;
